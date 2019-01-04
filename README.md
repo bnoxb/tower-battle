@@ -5,17 +5,17 @@
 
 ## User Stories:
 
-I. player starts game and the level begins
-    A. when player clicks a button it will run various functions
-        a. instantiates a unit of the selected type 
-        b. starts a "cooldown" on the button clicked which will not allow you to click the button again
-            i. will add the unit picture to the current units and remove from available units.
-        c. starts functions that will begin moving the unit towards the enemy tower.
-            i. collision function to tell when the unit has come within range of another unit or the tower.
-            ii. they will begin to attack each other based on objects stats doing damage to enemy HP based on attack power.
-            iii. check to see if either the unit or the tower has been destroyed
-                    x. if the unit is destroyed then continue moving
-                    z. if tower is destroyed ends level and begins a new level with AI "unit objects" increased stats and cooldowns
+* I. player starts game and the level begins
+ *   A. when player clicks a button it will run various functions
+  *      a. instantiates a unit of the selected type 
+   *     b. starts a "cooldown" on the button clicked which will not allow you to click the button again
+    *        i. will add the unit picture to the current units and remove from available units.
+     *   c. starts functions that will begin moving the unit towards the enemy tower.
+      *      i. collision function to tell when the unit has come within range of another unit or the tower.
+       *     ii. they will begin to attack each other based on objects stats doing damage to enemy HP based on attack power.
+        *    iii. check to see if either the unit or the tower has been destroyed
+         *           x. if the unit is destroyed then continue moving
+          *          z. if tower is destroyed ends level and begins a new level with AI "unit objects" increased stats and cooldowns
 II.  the AI player will wait a couple seconds and produce a unit
     A. AI will pick a random unit and send it towards player
         a. Instantiates a unit of the randomly selected type
