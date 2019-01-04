@@ -16,10 +16,10 @@
         *    iii. check to see if either the unit or the tower has been destroyed
          *           x. if the unit is destroyed then continue moving
           *          z. if tower is destroyed ends level and begins a new level with AI "unit objects" increased stats and cooldowns
-II.  the AI player will wait a couple seconds and produce a unit
-    A. AI will pick a random unit and send it towards player
-        a. Instantiates a unit of the randomly selected type
-        b.Use the same functions to compute the battle as player 1
+* II.  the AI player will wait a couple seconds and produce a unit
+*    A. AI will pick a random unit and send it towards player
+*        a. Instantiates a unit of the randomly selected type
+*        b.Use the same functions to compute the battle as player 1
 
 ## Some properties for the Objects
 ### Unit class:
