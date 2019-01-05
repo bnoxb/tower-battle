@@ -3,7 +3,7 @@ const game = {
     int() {
         setInterval(() =>{
             this.timer++;
-        })
+        }, 1000);
     }
 };
 
@@ -22,13 +22,28 @@ class Unit {
         this.inRange = false;
     }
     render() {
+        if (this.name === 'enemy') {
+            $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`enemy`);
+        }
         $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`fighter`);
     }
+    
     checkMoveSpeed() {
-        console.log(`checking move speed`);
         if (game.timer % this.movementSpeed) {
-            this.move();
+            this.checkCollision();
         } 
+    }
+    checkCollision() {
+        const $enemyX = this.x
+        const $theEnemy = $(`.square[x='${$enemyX + 1}'][y='${this.y}']`);
+        console.log($theEnemy.hasClass(`enemy`));
+        if ($theEnemy.hasClass(`enemy`)){
+            console.log(`collision detected`);
+            //$(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`fighter`);
+        } else {
+            console.log(`no collision detected`);
+            this.move();
+        }
     }
     move() {
         if(this.x < 12) {
@@ -36,11 +51,11 @@ class Unit {
             $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`fighter`);
             this.x++;
             this.render();
-        }
+        } 
     }
     moveInt () {
         setInterval(()=>{
-            this.checkMoveSpeed();
+            this.checkCollision();
         }, 1000);
     }
 }
@@ -50,12 +65,15 @@ const makeUnits = () => {
     newUnit.moveInt();
 }
 
+const makeEnemyUnit = () => {
+    const enemyUnit = new Unit(`enemy`, 10, 2, 1, 1, 2, 1, 8, 1);
+    enemyUnit.render();
+}
 
 const gameBoardSetup = () => {
     for (let y = 5; y > 0; y--) {
         const $thisRow = $(`<div/>`).appendTo(`.game-board`);
             for (let x = 1; x < 13; x++) {
-                console.log(`going through loop`);
                 $(`<div/>`).attr({x: `${x}`, y: `${y}`}).addClass(`square`).appendTo($thisRow);
             }
     }
@@ -64,3 +82,4 @@ const gameBoardSetup = () => {
 gameBoardSetup();
 game.int();
 makeUnits();
+makeEnemyUnit();
