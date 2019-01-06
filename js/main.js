@@ -6,6 +6,22 @@ const game = {
         }, 1000);
     }
 };
+const player = {
+    ID:   ``,
+    name: `player`,
+    towerX: 2,
+    towerY: 1,
+    unitX:  3,
+    unitY:  1
+}
+const computer = {
+    ID:   `Roberto Roboto`,
+    name: `computer`,
+    towerX: 12,
+    towerY: 1,
+    unitX:  10,
+    unitY:  1
+}
 
 class Unit {
     constructor(name, controller, x, y) {
@@ -22,17 +38,19 @@ class Unit {
 class Fighter extends Unit {
     constructor(name, controller, x, y) {
         super(name, controller, x, y)
-        this.hp = 10;
-        this.damage = 2;
-        this.attackSpeed = 1;
-        this.range = 1;
-        this.movementSpeed = 2;
-        this.defense = 1;
-        this.accuracy = 1;
+        this.hp =             10;
+        this.damage =         2;
+        this.attackSpeed =    1;
+        this.range =          1;
+        this.movementSpeed =  2;
+        this.defense =        1;
+        this.accuracy =       1;
     }
     render() {
         if (this.controller === 'computer') {
             $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`enemy`);
+        }else {
+            $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`player`);
         }
         $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`fighter`);
     }
@@ -67,18 +85,15 @@ class Fighter extends Unit {
 class Tower extends Unit {
     constructor(name, controller, x, y) {
         super(name, controller, x, y)
-        this.hp = 100;
-        this.level = 1;
+        this.hp =       100;
+        this.level =    1;
         this.brix = [];
     }
     render() {
         console.log(`rendering ${this.x} and ${this.y}`);
         $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`${this.controller} tower`);
-        const thisX = this.x - 2;
         for (let i = 1; i < 5; i++) {
-            console.log(`i = ${i}`);
             for (let j = 0; j > -2; j--) {
-                console.log(`j = ${j}`);
                 const thisBrix = this.x;
                 $(`.square[x='${thisBrix + j}'][y='${i}']`).addClass(`${this.controller} tower`);
             }
@@ -87,26 +102,19 @@ class Tower extends Unit {
 }
 
 const makeTower = (controller) => {
-    let towerX = 2;
-    const towerY = 1;
-    console.log(`towerX: ${towerX} towerY: ${towerY}`);
-    if (controller === `computer`) {
-        towerX = 12;
-    }
-    const tower = new Tower(`tower`, controller, towerX, towerY);
-    console.log(`just made the tower`);
+    let newTowerX = controller.towerX;
+    let newTowerY = controller.towerY;
+    console.log(`${controller}'s towerX: ${newTowerX} and towerY: ${newTowerY}`);
+    const tower = new Tower(`tower`, controller.name, newTowerX, newTowerY);
     tower.render();
 } 
 
-const makeUnits = () => {
-    const newUnit = new Fighter(`fighter`, 'player', 3, 1);
+const makeFighter = (controller) => {
+    let newUnitX = controller.unitX;
+    let newUnitY = controller.unitY;
+    const newUnit = new Fighter(`fighter`, controller.name, newUnitX, newUnitY);
     newUnit.render();
-    newUnit.moveInt();
-}
-
-const makeEnemyUnit = () => {
-    const enemyUnit = new Fighter(`blocker`,'computer', 8, 1);
-    enemyUnit.render();
+    //newUnit.moveInt();
 }
 
 const gameBoardSetup = () => {
@@ -121,7 +129,8 @@ const gameBoardSetup = () => {
 
 gameBoardSetup();
 game.int();
-makeUnits();
-makeEnemyUnit();
-makeTower(`player`);
-makeTower(`computer`);
+makeTower(player);
+makeTower(computer);
+makeFighter(player);
+makeFighter(computer);
+
