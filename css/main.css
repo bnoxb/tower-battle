@@ -9,3 +9,10 @@
 .fighter {
     background: red;
 }
+.enemy {
+    background: blue;
+}
+
+.tower {
+    background: brown;
+}

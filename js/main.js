@@ -8,26 +8,34 @@ const game = {
 };
 
 class Unit {
-    constructor(name, hp, damage, attackSpeed, range, movementSpeed, defense, x, y) {
+    constructor(name, controller, x, y) {
         this.name = name;
-        this.hp = hp;
-        this.damage = damage;
-        this.attackSpeed = attackSpeed;
-        this.range = range;
-        this.movementSpeed = movementSpeed;
-        this.defense = defense;
+        this.controller = controller;
         this.x = x;
         this.y = y;
         this.isAlive = true;
         this.inRange = false;
     }
+    
+}
+
+class Fighter extends Unit {
+    constructor(name, controller, x, y) {
+        super(name, controller, x, y)
+        this.hp = 10;
+        this.damage = 2;
+        this.attackSpeed = 1;
+        this.range = 1;
+        this.movementSpeed = 2;
+        this.defense = 1;
+        this.accuracy = 1;
+    }
     render() {
-        if (this.name === 'enemy') {
+        if (this.controller === 'computer') {
             $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`enemy`);
         }
         $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`fighter`);
     }
-    
     checkMoveSpeed() {
         if (game.timer % this.movementSpeed) {
             this.checkCollision();
@@ -36,18 +44,14 @@ class Unit {
     checkCollision() {
         const $enemyX = this.x
         const $theEnemy = $(`.square[x='${$enemyX + 1}'][y='${this.y}']`);
-        console.log($theEnemy.hasClass(`enemy`));
         if ($theEnemy.hasClass(`enemy`)){
             console.log(`collision detected`);
-            //$(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`fighter`);
         } else {
-            console.log(`no collision detected`);
             this.move();
         }
     }
     move() {
         if(this.x < 12) {
-            console.log(`moving unit`);
             $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`fighter`);
             this.x++;
             this.render();
@@ -59,14 +63,49 @@ class Unit {
         }, 1000);
     }
 }
+
+class Tower extends Unit {
+    constructor(name, controller, x, y) {
+        super(name, controller, x, y)
+        this.hp = 100;
+        this.level = 1;
+        this.brix = [];
+    }
+    render() {
+        console.log(`rendering ${this.x} and ${this.y}`);
+        $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`${this.controller} tower`);
+        const thisX = this.x - 2;
+        for (let i = 1; i < 5; i++) {
+            console.log(`i = ${i}`);
+            for (let j = 0; j > -2; j--) {
+                console.log(`j = ${j}`);
+                const thisBrix = this.x;
+                $(`.square[x='${thisBrix + j}'][y='${i}']`).addClass(`${this.controller} tower`);
+            }
+        }
+    }
+}
+
+const makeTower = (controller) => {
+    let towerX = 2;
+    const towerY = 1;
+    console.log(`towerX: ${towerX} towerY: ${towerY}`);
+    if (controller === `computer`) {
+        towerX = 12;
+    }
+    const tower = new Tower(`tower`, controller, towerX, towerY);
+    console.log(`just made the tower`);
+    tower.render();
+} 
+
 const makeUnits = () => {
-    const newUnit = new Unit(`fighter`, 10, 2, 1, 1, 2, 1, 3, 1);
+    const newUnit = new Fighter(`fighter`, 'player', 3, 1);
     newUnit.render();
     newUnit.moveInt();
 }
 
 const makeEnemyUnit = () => {
-    const enemyUnit = new Unit(`enemy`, 10, 2, 1, 1, 2, 1, 8, 1);
+    const enemyUnit = new Fighter(`blocker`,'computer', 8, 1);
     enemyUnit.render();
 }
 
@@ -79,7 +118,10 @@ const gameBoardSetup = () => {
     }
 }
 
+
 gameBoardSetup();
 game.int();
 makeUnits();
 makeEnemyUnit();
+makeTower(`player`);
+makeTower(`computer`);
