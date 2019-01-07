@@ -38,20 +38,20 @@ class Unit {
     }
     
 }
-
 class Fighter extends Unit {
     constructor(name, controller, x, y, orient) {
         super(name, controller, x, y, orient)
         this.timer= 0;
         this.hp =             10;
-        this.damage =         2;
-        this.attackSpeed =    1;
+        this.damage =         3;
+        this.attackSpeed =    2;
         this.range =          1;
         this.movementSpeed =  2;
         this.defense =        1;
-        this.accuracy =       1;
-        this.InCombat = false;
-        this.target = [];
+        this.accuracy =       .6;
+        this.inCombat = false;
+        this.target;
+        this.currentTarget;
     }
 
     render() {
@@ -70,17 +70,14 @@ class Fighter extends Unit {
         } 
     }
     checkCollision() { // this is the method that starts the targetCheck and attack sequence
-        const $thisX = this.x;
-        const $theEnemy = $(`.square[x='${(this.range * this.orient) + $thisX}'][y='${this.y}']`);
-        
-        //console.log($theEnemy)
+        const $theEnemy = $(`.square[x='${(this.range * this.orient) + this.x}'][y='${this.y}']`);
         if ($theEnemy.hasClass(`computer`)) {
             this.target = $theEnemy;
-            this.InCombat = true;
+            this.inCombat = true;
             this.targetCheck(computer);
         } else if ($theEnemy.hasClass(`player`)) {
             this.target = $theEnemy;
-            this.InCombat = true;
+            this.inCombat = true;
             this.targetCheck(player);
         } else {
             this.move();
@@ -95,30 +92,74 @@ class Fighter extends Unit {
     }
     // this function with an Interval starts the move checks and ultimately the units moving.
     unitInt() {
-        setInterval(()=>{
-            //if (this.InCombat)
-            this.checkMoveSpeed();
-            this.timer++;
+        const unitInterval = setInterval(()=>{
+            if(this.isAlive === true && this.inCombat === true){
+                    console.log(`${this.controller} is alive`);
+                    this.attackSpeedCheck();
+                    
+            }   else if (this.isAlive){
+                    this.checkMoveSpeed();
+                     
+            }   else {
+                    clearInterval(unitInterval);
+                    this.death();
+            }
+            this.timer++; 
         }, 500);
     }
 
     targetCheck(target) {
         const thisTarget = this.target;
-        console.log(thisTarget);
         const targetInEnemyArray = target.currentUnits[0];
-        console.log(targetInEnemyArray);
         for (let i = 0; i < target.currentUnits.length; i++) {
             let thisTargetAttr = parseInt(thisTarget.attr('x'));
-            console.log(`thisTarget.attr('x') is ${thisTargetAttr}`);
             if (thisTargetAttr === target.currentUnits[i].x) {
-                console.log(`yay targeting worked and you targeted ${target.name}`);
+                this.currentTarget = targetInEnemyArray;
+                this.attack(targetInEnemyArray);
             } 
+        }
+    }
+    
+    attack(target) {
+        if (target.hp > 0) {
+            const actualDamage = this.damage - target.defense;
+            console.log(`${this.controller}${this.name} did ${actualDamage} damage to ${target.controller}${target.name}`);
+            target.hp = target.hp - actualDamage;
+            console.log(`${target.controller}'s ${target.name} has ${target.hp} hp left!`); 
+            this.attackKillCheck(target);
+        }   else if (target.isAlive === true) {
+                console.log(`${target.controller}'s ${target.name} is dead!`);
+                target.isAlive = false;
+                this.inCombat = false;
+        } else {
+            this.attackDieCheck(target);
+            this.attackKillCheck(target);
         }
         
     }
-    attack() {
-
-    };
+    attackKillCheck(target) {
+        if (target.hp < 1) {
+            console.log(`using attackKillCheck on ${target.controller}`);
+            target.isAlive=false;
+            this.inCombat=false;
+        }
+    }
+    attackDieCheck(target) {
+        if (this.hp < 1) {
+            this.isAlive = false;
+            this.InCombat = false;
+            console.log(`${this.controller}'s ${this.name} has killed ${target.controller}'s ${target.name} but has died from his wounds.`);
+        };
+    }
+    attackSpeedCheck() {
+        if (this.timer % this.attackSpeed) {
+            this.attack(this.currentTarget);
+        }
+    }
+    death() {
+        console.log(`${this.controller}'s ${this.name} is proclaimed dead by the death(); function!`);
+        $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`fighter ${this.controller}`);
+    }
 }
 
 class Tower extends Unit {
@@ -171,4 +212,5 @@ game.int();
 makeTower(player);
 makeTower(computer);
 makeFighter(player);
-makeFighter(computer);
+// setting a delay to the computer
+setTimeout(makeFighter, 500, computer);
