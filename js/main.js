@@ -13,7 +13,8 @@ const player = {
     towerY: 1,
     unitX:  3,
     unitY:  1,
-    affinity: 1
+    affinity: 1,
+    currentUnits: [],
 }
 const computer = {
     ID:   `Roberto Roboto`,
@@ -22,7 +23,8 @@ const computer = {
     towerY: 1,
     unitX:  10,
     unitY:  1,
-    affinity: -1
+    affinity: -1,
+    currentUnits: [],
 }
 
 class Unit {
@@ -33,7 +35,6 @@ class Unit {
         this.y = y;
         this.orient = orient;
         this.isAlive = true;
-        this.inRange = false;
     }
     
 }
@@ -41,6 +42,7 @@ class Unit {
 class Fighter extends Unit {
     constructor(name, controller, x, y, orient) {
         super(name, controller, x, y, orient)
+        this.timer= 0;
         this.hp =             10;
         this.damage =         2;
         this.attackSpeed =    1;
@@ -48,7 +50,10 @@ class Fighter extends Unit {
         this.movementSpeed =  2;
         this.defense =        1;
         this.accuracy =       1;
+        this.InCombat = false;
+        this.target = [];
     }
+
     render() {
         if (this.controller === 'computer') {
             $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`${this.controller}`);
@@ -58,36 +63,62 @@ class Fighter extends Unit {
         $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`${this.name}`);
     }
     checkMoveSpeed() {
-        if (game.timer % this.movementSpeed) {
+        if (this.InCombat) {
+            // console.log(`attacking target!`);
+        } else if (this.timer % this.movementSpeed) {
             this.checkCollision();
         } 
     }
-    checkCollision() {
-        const $enemyX = this.x;
-        const $theEnemy = $(`.square[x='${$enemyX + this.orient}'][y='${this.y}']`);
+    checkCollision() { // this is the method that starts the targetCheck and attack sequence
+        const $thisX = this.x;
+        const $theEnemy = $(`.square[x='${(this.range * this.orient) + $thisX}'][y='${this.y}']`);
+        
         //console.log($theEnemy)
         if ($theEnemy.hasClass(`computer`)) {
-            console.log(`collision detected`);
+            this.target = $theEnemy;
+            this.InCombat = true;
+            this.targetCheck(computer);
         } else if ($theEnemy.hasClass(`player`)) {
-            console.log(`enemy has collided with us!`);
+            this.target = $theEnemy;
+            this.InCombat = true;
+            this.targetCheck(player);
         } else {
-            console.log(`${this.controller} has made it to this.move!!`)
             this.move();
         }
     }
     move() {
         if(this.x < 11 && this.x > 1) {
             $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`fighter ${this.controller}`);
-            this.x= this.x + this.orient;
+            this.x = this.x + this.orient;
             this.render();
         } 
     }
-    // this function starts the move checks and ultimately the units moving.
-    moveInt () {
+    // this function with an Interval starts the move checks and ultimately the units moving.
+    unitInt() {
         setInterval(()=>{
-            this.checkCollision();
-        }, 1000);
+            //if (this.InCombat)
+            this.checkMoveSpeed();
+            this.timer++;
+        }, 500);
     }
+
+    targetCheck(target) {
+        const thisTarget = this.target;
+        console.log(thisTarget);
+        const targetInEnemyArray = target.currentUnits[0];
+        console.log(targetInEnemyArray);
+        for (let i = 0; i < target.currentUnits.length; i++) {
+            let thisTargetAttr = parseInt(thisTarget.attr('x'));
+            console.log(`thisTarget.attr('x') is ${thisTargetAttr}`);
+            if (thisTargetAttr === target.currentUnits[i].x) {
+                console.log(`yay targeting worked and you targeted ${target.name}`);
+            } 
+        }
+        
+    }
+    attack() {
+
+    };
 }
 
 class Tower extends Unit {
@@ -98,7 +129,6 @@ class Tower extends Unit {
         this.brix = [];
     }
     render() {
-        console.log(`rendering ${this.x} and ${this.y}`);
         $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`${this.controller} tower`);
         for (let i = 1; i < 5; i++) {
             for (let j = 0; j > -2; j--) {
@@ -112,7 +142,6 @@ class Tower extends Unit {
 const makeTower = (controller) => {
     let newTowerX = controller.towerX;
     let newTowerY = controller.towerY;
-    console.log(`${controller}'s towerX: ${newTowerX} and towerY: ${newTowerY}`);
     const tower = new Tower(`tower`, controller.name, newTowerX, newTowerY, controller.affinity);
     tower.render();
 } 
@@ -121,8 +150,10 @@ const makeFighter = (controller) => {
     let newUnitX = controller.unitX;
     let newUnitY = controller.unitY;
     const newUnit = new Fighter(`fighter`, controller.name, newUnitX, newUnitY, controller.affinity);
+    controller.currentUnits.push(newUnit);
+    console.log(controller.currentUnits);
     newUnit.render();
-    newUnit.moveInt();
+    newUnit.unitInt();
 }
 
 const gameBoardSetup = () => {
@@ -141,4 +172,3 @@ makeTower(player);
 makeTower(computer);
 makeFighter(player);
 makeFighter(computer);
-
