@@ -6,9 +6,18 @@
     margin: 3px;
 }
 
-.fighter {
+.swordsman {
     background: red;
 }
+
+.archer {
+    background: green;
+}
+
+.defender {
+    background: yellow;
+}
+
 .computer {
     background: blue;
 }
