@@ -84,10 +84,7 @@ class Fighter extends Unit {
     render() {
         const $thisSquare = $(`.square[x='${this.x}'][y='${this.y}']`);
         $thisSquare.addClass(`${this.controller} ${this.name}`);
-        $thisSquare.attr(`controller`, this.controller);
-        console.log($thisSquare.attr(`controller`));
         this.dom = $thisSquare;
-        console.log(this.dom.attr(`controller`));
     }
     checkMoveSpeed() {
         if (this.timer % this.movementSpeed === 0) {
@@ -96,14 +93,19 @@ class Fighter extends Unit {
     }
 
     checkRange() { 
+        //console.log(`${this.name} checking range`);
         let numOfTargets = 0;
         for (let i = 1; i < this.range + 1; i++) {
             const $theUnit = $(`.square[x='${(i * this.orient) + this.x}'][y='${this.y}']`);
-            if ($theUnit.attr(this.enemy)) {
-                this.target = $theUnit;
-                this.inCombat = true;
-                numOfTargets++;
-                break;
+            const theUnitObject = this.targetCheck($theUnit);
+            if (theUnitObject === true){
+                //console.log(`${this.controller}'s ${this.name} has a target = true`)
+                if (this.currentTarget.controller === this.enemy) {
+                    this.target = $theUnit;
+                    this.inCombat = true;
+                    numOfTargets++;
+                    break;
+                }
             }
         }
         if (numOfTargets > 0) {
@@ -114,8 +116,9 @@ class Fighter extends Unit {
             
     }
     checkCollision() {
+    
         const $theUnit= $(`.square[x='${(this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.attr(this.controller) && $theUnit.hasClass(`tower`)) {
+        if ($theUnit.hasClass(this.controller) && $theUnit.hasClass(`tower`)) {
             this.move(0);
         } else if ($theUnit.hasClass(this.controller)) {
             this.checkCollisionAhead();
@@ -124,7 +127,7 @@ class Fighter extends Unit {
         }
     }
     checkCollisionAhead() {
-        console.log(`checking collision ahead`);
+        
         const $theUnit= $(`.square[x='${(this.orient + this.orient) + this.x}'][y='${this.y}']`);
         if ($theUnit.hasClass(this.enemy) === false && $theUnit.hasClass(this.controller) === false) {
             this.move(this.orient);
@@ -133,7 +136,6 @@ class Fighter extends Unit {
     
     move(extra) {
         if (($(this.dom).hasClass(`tower`) === true) && this.x < 13 && this.x > 0){
-            console.log(`inside the tower if check`);
             $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name}`);
             this.checkVictory();
             this.x = this.x + this.orient + extra;
@@ -179,31 +181,34 @@ class Fighter extends Unit {
     }
 
     targetCheck(target) {
-        if (this.target.hasClass(`tower`)){
-            this.targetTower(target);
-        } else {
-            const thisTarget = this.target;
-            const targetInEnemyArray = target.currentUnits[0];
-                for (let i = 0; i < target.currentUnits.length; i++) {
-                    const thisTargetAttrX = parseInt(thisTarget.attr('x'));
-                        if (thisTargetAttrX === target.currentUnits[i].x) {
-                            this.currentTarget = targetInEnemyArray;
-                            this.attack(this.currentTarget);
+        if (target.hasClass(`tower`)){
+            return this.targetTower(target);
+        } 
+        else {
+            const thisTarget = target;
+                for (let i = 0; i < this.enemyObject.currentUnits.length; i++) {
+                        const thisTargetAttrX = parseInt(thisTarget.attr('x'));
+                        if (thisTargetAttrX === this.enemyObject.currentUnits[i].x) {
+                            this.currentTarget = this.enemyObject.currentUnits[i];
+                            return true;
                         }    
                 } 
         }
-        
+                
     }
+        
+    
 
     targetTower(target) {
-        const $thisTarget = this.target;
-        for (let i = 0; i < target.currentTower.brix.length; i++ ) {
+        const $thisTarget = target;
+        for (let i = 0; i < this.enemyObject.currentTower.brix.length; i++ ) {
             const thisTargetAttrX = parseInt($thisTarget.attr(`x`));
             const thisTargetAttrY = parseInt($thisTarget.attr(`y`));
-            if (thisTargetAttrX === target.currentTower.brix[i].x && thisTargetAttrY === target.currentTower.brix[i].y) {
-                this.currentTarget = target.currentTower.brix[i];
+            if (thisTargetAttrX === this.enemyObject.currentTower.brix[i].x && thisTargetAttrY === this.enemyObject.currentTower.brix[i].y) {
+                this.currentTarget = this.enemyObject.currentTower.brix[i];
+                return true;
                 // console.log(target.currentTower[i]);
-                this.attack(this.currentTarget);
+                //this.attack(this.currentTarget);
             }
         }
     }
@@ -216,6 +221,7 @@ class Fighter extends Unit {
         }
     }
     attack(target) {
+        console.log(`${this.name} is targting ${target}`);
         if (target.hp > 0) {
             const actualDamage = this.computeActualDamage(target);
                 console.log(`${this.controller}${this.name} did ${actualDamage} damage to ${target.controller}${target.name}`);
@@ -248,13 +254,16 @@ class Fighter extends Unit {
     }
     attackSpeedCheck() {
         if (this.timer % this.attackSpeed === 0) {
-            this.targetCheck(this.enemyObject);
+            console.log(`${this.name} has passed attackspeed check`);
+            this.attack(this.currentTarget);
         } 
     }
     death() {
         console.log(`${this.controller}'s ${this.name} is proclaimed dead by the death(); function!`);
         $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
-        this.controllerObject.currentUnits.splice(0, 1);
+        const thisIndex = this.controllerObject.currentUnits.indexOf(this);
+        console.log(thisIndex);
+        this.controllerObject.currentUnits.splice(thisIndex, 1);
     }
 }
 
@@ -396,15 +405,26 @@ const makeArcher = (controller) => {
 }
 
 const makeDefender = (controller) => {
-    let newUnitX = controller.unitX;
-    let newUnitY = controller.unitY;
-    const newUnit = new Defender(`defender`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
-    controller.currentUnits.push(newUnit);
-    newUnit.render();
-    newUnit.initInt();
+    
+        let newUnitX = controller.unitX;
+        let newUnitY = controller.unitY;
+        const newUnit = new Defender(`defender`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
+        controller.currentUnits.push(newUnit);
+        newUnit.render();
+        newUnit.initInt();
+        
 }
-
+const checkUnitStack = () => {
+    for (let i = 0; i < controller.currentUnits.length; i++) {
+        if (controller.currentUnits[i].x === controller.unitX) {
+            console.log(`There is already a unit there failed to create unit`);
+            break;
+        } else {
+        }
+}
+}
 const makeDemon = (controller) => {
+    
     let newUnitX = controller.unitX;
     let newUnitY = controller.unitY;
     const newUnit = new Demon(`demon`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
@@ -518,9 +538,4 @@ const buttonArcher = () => {
         }  
     }
 });
-
-
 startGame();
-
-
-
