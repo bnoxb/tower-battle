@@ -46,7 +46,15 @@ const computer = {
     victory: false,
     aiInt: 0,
 }
-
+const demon = {
+    hp:             5,
+    damage:         2,
+    attackSpeed:    250,
+    range:          1,
+    movementSpeed:  250,
+    defense:        0,
+    accuracy:       .6,
+}
 class Unit {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         this.name = name;
@@ -76,7 +84,10 @@ class Fighter extends Unit {
     render() {
         const $thisSquare = $(`.square[x='${this.x}'][y='${this.y}']`);
         $thisSquare.addClass(`${this.controller} ${this.name}`);
+        $thisSquare.attr(`controller`, this.controller);
+        console.log($thisSquare.attr(`controller`));
         this.dom = $thisSquare;
+        console.log(this.dom.attr(`controller`));
     }
     checkMoveSpeed() {
         if (this.timer % this.movementSpeed === 0) {
@@ -88,7 +99,7 @@ class Fighter extends Unit {
         let numOfTargets = 0;
         for (let i = 1; i < this.range + 1; i++) {
             const $theUnit = $(`.square[x='${(i * this.orient) + this.x}'][y='${this.y}']`);
-            if ($theUnit.hasClass(this.enemy)) {
+            if ($theUnit.attr(this.enemy)) {
                 this.target = $theUnit;
                 this.inCombat = true;
                 numOfTargets++;
@@ -104,7 +115,7 @@ class Fighter extends Unit {
     }
     checkCollision() {
         const $theUnit= $(`.square[x='${(this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.controller) && $theUnit.hasClass(`tower`)) {
+        if ($theUnit.attr(this.controller) && $theUnit.hasClass(`tower`)) {
             this.move(0);
         } else if ($theUnit.hasClass(this.controller)) {
             this.checkCollisionAhead();
@@ -162,6 +173,8 @@ class Fighter extends Unit {
     }
     levelComplete() {
         game.level++;
+        demon.hp= demon.hp + 2;
+        demon.damage= demon.damage + 1;
         //setTimeout(game.resetBoard, 20);
     }
 
@@ -284,6 +297,19 @@ class Defender extends Fighter {
     }
 }
 
+class Demon extends Fighter {
+    constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
+        super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
+        this.hp =             demon.hp;
+        this.damage =         demon.damage;
+        this.attackSpeed =    demon.attackSpeed;
+        this.range =          demon.range;
+        this.movementSpeed =  demon.movementSpeed;
+        this.defense =        demon.defense;
+        this.accuracy =       demon.accuracy;
+    }
+}
+
 class Brick extends Unit {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject, tower) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
@@ -378,6 +404,15 @@ const makeDefender = (controller) => {
     newUnit.initInt();
 }
 
+const makeDemon = (controller) => {
+    let newUnitX = controller.unitX;
+    let newUnitY = controller.unitY;
+    const newUnit = new Demon(`demon`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
+    controller.currentUnits.push(newUnit);
+    newUnit.render();
+    newUnit.initInt();
+}
+
 const gameBoardSetup = () => {
     for (let y = 5; y > 0; y--) {
         const $thisRow = $(`<div/>`).appendTo(`.game-board`);
@@ -408,16 +443,17 @@ const resetGame = () => {
 
 const compUnits = () => {
     if (game.level === 1) {
-        makeSwordsman(computer);
+        makeDemon(computer);
     } else if (game.level === 2) {
         const ranNum = Math.floor(Math.random() * 2) + 1;
         if (ranNum === 1) {
-            makeSwordsman(computer);
+            makeDemon(computer);
         } else {
             makeArcher(computer);
         }
     } else {
-        compRandomUnits();
+        makeDemon(computer);
+        makeArcher(computer);
     }
 }
 
@@ -443,58 +479,45 @@ const clearIntervals = ()=>{
 
 }
 
-$(`#make-sword`).on(`click`, function (e) {
+const buttonDefender = () => {
+    makeDefender(player);
+    $(`#make-defender`).prop(`disabled`, true);
+    setTimeout(function () {
+        $(`#make-defender`).prop(`disabled`, false);
+    }, 5000)
+}
+const buttonSword = () => {
     makeSwordsman(player);
-    buttonsOff(e.target);
-});
-$(`#make-archer`).on(`click`, function (e) {
-    makeSwordsman(player);
-    buttonsOff(e.target);
-});
-$(`#make-defender`).on(`click`, function (e) {
-    makeSwordsman(player);
-    buttonsOff(e.target);
-});
-const buttonsOn = (e) => {
-    console.log(`buttons are turned on`);
+    $(`#make-sword`).prop(`disabled`, true);
+    setTimeout(function () {
+        $(`#make-sword`).prop(`disabled`, false);
+    }, 5000)
+}
+const buttonArcher = () => {
+    makeArcher(player);
+    $(`#make-archer`).prop(`disabled`, true);
+    setTimeout(function () {
+        $(`#make-archer`).prop(`disabled`, false);
+    }, 5000)
+}
+
     $(`body`).on('click', function(e) {
     if (e.target.tagName === 'BUTTON'){
         const $thisButton = $(e.target)[0];
         if ($($thisButton).attr('id') === 'start-game'){
-            console.log(`start button clicked`);
             // startGame();
         } else if ($($thisButton).attr(`id`) === 'make-sword') {
-            makeSwordsman(player);
-            buttonsOff(e.target);
+            console.log(`button was clicked`);
+            buttonSword();
         }else if($($thisButton).attr(`id`) === `make-archer`) {
-            makeArcher(player);
-            buttonsOff(e.target);
+            buttonArcher();
         }else if($($thisButton).attr(`id`) === `make-defender`) {
-            makeDefender(player);
-            buttonsOff(e.target);
+            buttonDefender();
         }else if($($thisButton).attr(`id`)=== `next-level`) {
             game.resetBoard();
         }  
     }
 });
-}
-const buttonsOff = (e) => {
-    console.log(`turning off button ${e}`);
-    console.log(e.target);
-    if (e.target.tagName === 'BUTTON') {
-        const $thisButton = $(e.target)[0];
-        if ($($thisButton).attr(`id`) === 'make-sword') {
-            $($thisButton).off('click');
-            setTimeout(buttonsOn, 5000, e.target);
-        }else if ($($thisButton).attr(`id`) === 'make-archer') {
-            $($thisButton).off('click');
-            setTimeout(buttonsOn, 5000, e.target);
-        }else if ($($thisButton).attr(`id`) === 'make-defender') {
-            $($thisButton).off('click');
-            setTimeout(buttonsOn, 5000, e.target);
-        }
-    }
-}
 
 
 startGame();
