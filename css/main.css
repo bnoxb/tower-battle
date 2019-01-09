@@ -1,21 +1,26 @@
 .square {
-    background: black;
+    
     display: inline-block;
     height: 50px;
     width: 50px;
-    margin: 3px;
+    margin-top: -3px;
 }
 
 .swordsman {
-    background: red;
+    background: url(../images/swordsman01.png);
+    background-size: cover;
+    z-index: 1;
 }
 
 .archer {
-    background: green;
+    background: url(../images/golbin-archer.jpg);
+    background-size: cover;
+    z-index: 1;
 }
 
 .defender {
-    background: yellow;
+    background: url(../images/shield01.png);
+    background-size: cover;
 }
 
 .computer {
@@ -23,8 +28,16 @@
 }
 
 .tower {
-    background: brown;
+    background: url(../images/brick01.jpg);
+    background-size: cover;
+    z-index: -1;
 }
 .wrapper {
     background: grey;
+}
+
+.demon {
+    background: url(../images/demon01.jpeg);
+    background-size: cover;
+    z-index: 1;
 }

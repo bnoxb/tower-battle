@@ -1,18 +1,17 @@
 const game = {
     level: 1,
     timer: 0,
+    score: 0,
     int() {
         setInterval(() =>{
             this.timer++;
         }, 1000);
     },
     resetBoard() {
-        
         player.currentUnits=[];
         computer.currentUnits=[];
         player.currentTower= [];
         computer.currentTower= [];
-        
         clearInterval(aiInt);
         $(`.game-board`).html(``);
         console.log(`about to start level ${this.level}`);
@@ -175,8 +174,10 @@ class Fighter extends Unit {
     }
     levelComplete() {
         game.level++;
+        $(`#current-level`).text(`Level: ${game.level}`);
         demon.hp= demon.hp + 2;
         demon.damage= demon.damage + 1;
+        $(`#next-level`).prop('disabled', false);
         //setTimeout(game.resetBoard, 20);
     }
 
@@ -196,9 +197,7 @@ class Fighter extends Unit {
         }
                 
     }
-        
     
-
     targetTower(target) {
         const $thisTarget = target;
         for (let i = 0; i < this.enemyObject.currentTower.brix.length; i++ ) {
@@ -240,9 +239,12 @@ class Fighter extends Unit {
     }
     attackKillCheck(target) {
         if (target.hp < 1) {
-            //console.log(`using attackKillCheck on ${target.controller}'s ${target.name}`);
+            console.log(`using attackKillCheck on ${target.controller}'s ${target.name}`);
             target.isAlive=false;
             this.inCombat=false;
+            game.score++;
+            console.log(`the score is now ${game.score}`);
+            $('#score-board').text(`Score: ${game.score}`);
         }
     }
     attackDieCheck(target) {
@@ -254,7 +256,6 @@ class Fighter extends Unit {
     }
     attackSpeedCheck() {
         if (this.timer % this.attackSpeed === 0) {
-            console.log(`${this.name} has passed attackspeed check`);
             this.attack(this.currentTarget);
         } 
     }
@@ -262,7 +263,6 @@ class Fighter extends Unit {
         console.log(`${this.controller}'s ${this.name} is proclaimed dead by the death(); function!`);
         $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
         const thisIndex = this.controllerObject.currentUnits.indexOf(this);
-        console.log(thisIndex);
         this.controllerObject.currentUnits.splice(thisIndex, 1);
     }
 }
@@ -405,32 +405,22 @@ const makeArcher = (controller) => {
 }
 
 const makeDefender = (controller) => {
-    
-        let newUnitX = controller.unitX;
-        let newUnitY = controller.unitY;
-        const newUnit = new Defender(`defender`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
-        controller.currentUnits.push(newUnit);
-        newUnit.render();
-        newUnit.initInt();
-        
-}
-const checkUnitStack = () => {
-    for (let i = 0; i < controller.currentUnits.length; i++) {
-        if (controller.currentUnits[i].x === controller.unitX) {
-            console.log(`There is already a unit there failed to create unit`);
-            break;
-        } else {
-        }
-}
-}
-const makeDemon = (controller) => {
-    
     let newUnitX = controller.unitX;
     let newUnitY = controller.unitY;
-    const newUnit = new Demon(`demon`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
+    const newUnit = new Defender(`defender`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
     controller.currentUnits.push(newUnit);
     newUnit.render();
     newUnit.initInt();
+        
+}
+
+const makeDemon = (controller) => {
+            let newUnitX = controller.unitX;
+            let newUnitY = controller.unitY;
+            const newUnit = new Demon(`demon`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
+            controller.currentUnits.push(newUnit);
+            newUnit.render();
+            newUnit.initInt();
 }
 
 const gameBoardSetup = () => {
@@ -474,18 +464,6 @@ const compUnits = () => {
     } else {
         makeDemon(computer);
         makeArcher(computer);
-    }
-}
-
-const compRandomUnits = () => {
-    const ranNum = Math.floor(Math.random() * 3) + 1;
-    console.log(ranNum);
-    if (ranNum === 1) {
-        makeSwordsman(computer);
-    } else if (ranNum === 2) {
-        makeArcher(computer);
-    } else {
-        makeDefender(computer);
     }
 }
 const aiIntervalSet = () => {
@@ -535,6 +513,7 @@ const buttonArcher = () => {
             buttonDefender();
         }else if($($thisButton).attr(`id`)=== `next-level`) {
             game.resetBoard();
+            $(`#next-level`).prop(`disabled`, true);
         }  
     }
 });

@@ -6,6 +6,7 @@
     <title>Tower Battle</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" media="screen" href="css/reset.css" />
     <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
     <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/velocity/1.5.1/velocity.js'></script>
@@ -18,10 +19,11 @@
        <div class="row">
            <div class="col-2">
                <button id="start-game">Start Game</button>
-               <button id="next-level">Go to next level</button>
+               <button id="next-level" disabled='true'>Go to next level</button>
            </div>
            <div class="col-5">
-
+                <div id="current-level">Level: 1</div>
+                <div id="score-board">Score: 0</div>
            </div>
            <div class="col-5">
 
