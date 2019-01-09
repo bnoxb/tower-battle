@@ -1,9 +1,22 @@
 const game = {
+    level: 1,
     timer: 0,
     int() {
         setInterval(() =>{
             this.timer++;
         }, 1000);
+    },
+    resetBoard() {
+        
+        player.currentUnits=[];
+        computer.currentUnits=[];
+        player.currentTower= [];
+        computer.currentTower= [];
+        
+        clearInterval(aiInt);
+        $(`.game-board`).html(``);
+        console.log(`about to start level ${this.level}`);
+        setTimeout(resetGame, 20);
     }
 };
 const player = {
@@ -11,24 +24,27 @@ const player = {
     name: `player`,
     towerX: 2,
     towerY: 1,
-    unitX:  3,
+    unitX:  1,
     unitY:  1,
     affinity: 1,
     towerLevel: 4,
     currentUnits: [],
     currentTower: [],
+    victory: false,
 }
 const computer = {
     ID:   `Roberto Roboto`,
     name: `computer`,
     towerX: 12,
     towerY: 1,
-    unitX:  10,
+    unitX:  12,
     unitY:  1,
     affinity: -1,
     towerLevel: 4,
     currentUnits: [],
     currentTower: [],
+    victory: false,
+    aiInt: 0,
 }
 
 class Unit {
@@ -42,6 +58,7 @@ class Unit {
         this.enemy = enemy;
         this.enemyObject = enemyObject;
         this.isAlive = true;
+        this.dom;
     }
     
 }
@@ -51,41 +68,54 @@ class Fighter extends Unit {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
         this.timer= 0;
         this.inCombat = false;
+        this.unitIntHandler;
         this.target;
         this.currentTarget;
     }
 
     render() {
-    
-            $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`${this.controller}`);
-            $(`.square[x='${this.x}'][y='${this.y}']`).addClass(`${this.name}`);
+        const $thisSquare = $(`.square[x='${this.x}'][y='${this.y}']`);
+        $thisSquare.addClass(`${this.controller} ${this.name}`);
+        this.dom = $thisSquare;
     }
     checkMoveSpeed() {
-        if (this.InCombat) {
-            // console.log(`attacking target!`);
-        } else if (this.timer % this.movementSpeed) {
-            this.checkRange();
+        if (this.timer % this.movementSpeed === 0) {
+            this.checkCollision();
         } 
     }
 
     checkRange() { 
-        const $theUnit = $(`.square[x='${(this.range * this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.enemy)) {
-            this.target = $theUnit;
-            this.inCombat = true;
-            this.targetCheck(this.enemyObject);
-        } else if ($theUnit.hasClass(this.controller)){
-            console.log(`dont target your own dudes!`);
+        console.log(`check range is in combat: ${this.inCombat}`);
+        let numOfTargets = 0;
+        for (let i = 1; i < this.range + 1; i++) {
+            console.log((i * this.orient) + this.x);
+            const $theUnit = $(`.square[x='${(i * this.orient) + this.x}'][y='${this.y}']`);
+            if ($theUnit.hasClass(this.enemy)) {
+                this.target = $theUnit;
+                this.inCombat = true;
+                numOfTargets++;
+                break;
+            }
+        }
+        if (numOfTargets > 0) {
+            this.attackSpeedCheck();
+        } else {
+            this.checkMoveSpeed();
+        }
+            
+    }
+    checkInCombat() {
+        console.log(`check inCombat is in combat: ${this.inCombat}`);
+        if (this.inCombat === false) {
             this.checkCollision();
         } else {
-            this.checkCollision();
+            this.checkRange();
         }
     }
-
     checkCollision() {
         const $theUnit= $(`.square[x='${(this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.enemy)) {
-            console.log(`collision detected`);
+        if ($theUnit.hasClass(this.controller) && $theUnit.hasClass(`tower`)) {
+            this.move(0);
         } else if ($theUnit.hasClass(this.controller)) {
             this.checkCollisionAhead();
         } else {
@@ -93,45 +123,55 @@ class Fighter extends Unit {
         }
     }
     checkCollisionAhead() {
+        console.log(`checking collision ahead`);
         const $theUnit= $(`.square[x='${(this.orient + this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.enemy)) {
-            console.log(`collision detected`);
-        } else if ($theUnit.hasClass(this.controller)) {
-            console.log(`collision detected`);
-        } else {
-            this.move(1);
-        }
+        if ($theUnit.hasClass(this.enemy) === false && $theUnit.hasClass(this.controller) === false) {
+            this.move(this.orient);
+        } 
     }
     
     move(extra) {
-        if(this.x < 12 && this.x > 1) {
-            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
+        if (($(this.dom).hasClass(`tower`) === true) && this.x < 13 && this.x > 0){
+            console.log(`inside the tower if check`);
+            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name}`);
+            this.checkVictory();
             this.x = this.x + this.orient + extra;
             this.render();
+        }else if(this.x < 13 && this.x > 0) {
+            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
+            this.checkVictory();
+            this.x = this.x + this.orient + extra;
+            this.render();
+            
         } 
     }
-    // this function with an Interval starts the move checks and ultimately the units moving.
-    unitInt() {
-        const unitInterval = setInterval(()=>{
-            if(this.isAlive === true && this.inCombat === true){
-                    this.attackSpeedCheck();
-                    
-            }   else if (this.isAlive){
-                    this.checkMoveSpeed();
-                     
-            }   else {
-                    clearInterval(unitInterval);
-                    this.death();
-            }
-            this.timer++; 
-            this.checkVictory();
-        }, 500);
+    
+    initInt() {
+        this.unitIntHandler = setInterval(this.unitInt.bind(this), 1);
     }
-
-    checkVictory() {
-        if (this.x === 12 || this.x === 0) {
-            console.log(`You win!!`);
+    unitInt() {
+        if(this.isAlive === true){
+            this.checkRange();
+        }   else {
+            this.death();
+            clearInterval(this.unitIntHandler);
         }
+        this.timer++; 
+        this.checkVictory();
+    }
+    checkVictory() {
+        if (this.x === this.enemyObject.unitX) {
+            this.controllerObject.victory = true;
+            clearInterval(this.unitIntHandler);
+            this.levelComplete();
+        } else if (this.controllerObject.victory === true || this.enemyObject.victory === true) {
+            clearInterval(this.unitIntHandler);
+            this.death();
+        }
+    }
+    levelComplete() {
+        game.level++;
+        // setTimeout(game.resetBoard, 20);
     }
 
     targetCheck(target) {
@@ -203,8 +243,8 @@ class Fighter extends Unit {
         };
     }
     attackSpeedCheck() {
-        if (this.timer % this.attackSpeed) {
-            this.attack(this.currentTarget);
+        if (this.timer % this.attackSpeed === 0) {
+            this.targetCheck(this.enemyObject);
         } 
     }
     death() {
@@ -213,26 +253,28 @@ class Fighter extends Unit {
         this.controllerObject.currentUnits.splice(0, 1);
     }
 }
+
 class Swordsman extends Fighter {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
         this.hp =             10;
         this.damage =         6;
-        this.attackSpeed =    2;
+        this.attackSpeed =    250;
         this.range =          1;
-        this.movementSpeed =  2;
+        this.movementSpeed =  250;
         this.defense =        1;
         this.accuracy =       .6;
     }
 }
+
 class Archer extends Fighter {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
         this.hp =             5;
         this.damage =         3;
-        this.attackSpeed =    2;
+        this.attackSpeed =    250;
         this.range =          3;
-        this.movementSpeed =  2;
+        this.movementSpeed =  250;
         this.defense =        0;
         this.accuracy =       .6;
     }
@@ -243,9 +285,9 @@ class Defender extends Fighter {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
         this.hp =             20;
         this.damage =         0;
-        this.attackSpeed =    2;
+        this.attackSpeed =    250;
         this.range =          1;
-        this.movementSpeed =  2;
+        this.movementSpeed =  250;
         this.defense =        2;
         this.accuracy =       .6;
     }
@@ -268,7 +310,6 @@ class Brick extends Unit {
         }, 500);
     }
     death() {
-        console.log(`brick destroyed`);
         $($(`.square[x='${this.x}'][y='${this.y}']`)).removeClass(`${this.controller} tower`);
         this.moveBricks();
     }
@@ -278,16 +319,14 @@ class Brick extends Unit {
         for (let i = 0; i < brickArr.length; i++) {
             if (brickArr[i].x === thisX) {
                 const thisBrix = brickArr[i];
-                console.log(thisBrix);
                 $($(`.square[x='${thisBrix.x}'][y='${thisBrix.y}']`)).removeClass(`${this.controller} tower`);
                 thisBrix.y--;
-                console.log(`now its y is: ${thisBrix.y}`);
                 $($(`.square[x='${thisBrix.x}'][y='${thisBrix.y}']`)).addClass(`${this.controller} tower`);
             }
         }
-        console.log(`the death for loop is complete`);
     }
 }
+
 class Tower extends Unit {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
@@ -326,23 +365,26 @@ const makeSwordsman = (controller) => {
     const newUnit = new Swordsman(`swordsman`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
     controller.currentUnits.push(newUnit);
     newUnit.render();
-    newUnit.unitInt();
+    newUnit.initInt();
 }
+
 const makeArcher = (controller) => {
         let newUnitX = controller.unitX;
         let newUnitY = controller.unitY;
         const newUnit = new Archer(`archer`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
         controller.currentUnits.push(newUnit);
         newUnit.render();
-        newUnit.unitInt();
+        newUnit.initInt();
+       
 }
+
 const makeDefender = (controller) => {
     let newUnitX = controller.unitX;
     let newUnitY = controller.unitY;
     const newUnit = new Defender(`defender`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
     controller.currentUnits.push(newUnit);
     newUnit.render();
-    newUnit.unitInt();
+    newUnit.initInt();
 }
 
 const gameBoardSetup = () => {
@@ -354,26 +396,93 @@ const gameBoardSetup = () => {
     }
 }
 
-$(`#make-sword`).on('click', () => {
-    makeSwordsman(player);
-    
-});
+const startGame = () => {
+    gameBoardSetup();
+    player.enemy= computer;
+    computer.enemy = player;
+    game.int();
+    makeTower(player);
+    makeTower(computer);
+    setIntervals();
+    buttonsOn();
+}
+const resetGame = () => {
+    gameBoardSetup();
+    makeTower(player);
+    makeTower(computer);
+    player.victory = false;
+    computer.victory = false;
+    setIntervals();
+}
 
-$(`#make-archer`).on('click', () => {
-    console.log(`button clicked`);
-    makeArcher(player);
-});
+const compUnits = () => {
+    if (game.level === 1) {
+        makeSwordsman(computer);
+    } else if (game.level === 2) {
+        const ranNum = Math.floor(Math.random() * 2) + 1;
+        if (ranNum === 1) {
+            makeSwordsman(computer);
+        } else {
+            makeArcher(computer);
+        }
+    } else {
+        compRandomUnits();
+    }
+}
 
-$(`#make-defender`).on('click', () => {
-    console.log(`button clicked`);
-    makeDefender(player);
-});
+const compRandomUnits = () => {
+    const ranNum = Math.floor(Math.random() * 3) + 1;
+    console.log(ranNum);
+    if (ranNum === 1) {
+        makeSwordsman(computer);
+    } else if (ranNum === 2) {
+        makeArcher(computer);
+    } else {
+        makeDefender(computer);
+    }
+}
+const aiIntervalSet = () => {
+    i = setInterval(compUnits, 60000);
+    return i;
+}
+const setIntervals = () => {
+    aiInt = aiIntervalSet();
+}
+const clearIntervals = ()=>{
 
-player.enemy= computer;
-computer.enemy = player;
-gameBoardSetup();
-game.int();
-makeTower(player);
-makeTower(computer);
-// setting a delay to the computer
-setTimeout(makeDefender, 500, computer);
+}
+
+const buttonsOn = () => {
+    console.log(`buttons are turned on`);
+    $(`body`).on('click', function(e) {
+    if (e.target.tagName === 'BUTTON'){
+        const $thisButton = $(e.target)[0];
+        if ($($thisButton).attr('id') === 'start-game'){
+            console.log(`start button clicked`);
+            // startGame();
+        } else if ($($thisButton).attr(`id`) === 'make-sword') {
+            makeSwordsman(player);
+            buttonsOff(e.target);
+        }else if($($thisButton).attr(`id`) === `make-archer`) {
+            makeArcher(player);
+            buttonsOff(e.target);
+        }else if($($thisButton).attr(`id`) === `make-defender`) {
+            makeDefender(player);
+            buttonsOff(e.target);
+        }else if($($thisButton).attr(`id`)=== `next-level`) {
+            game.resetBoard();
+        }  
+    }
+});
+}
+const buttonsOff = (e) => {
+    console.log(`turning off button ${e}`);
+    $(`body`).off('click', e.target);
+    setTimeout(buttonsOn, 5000);
+}
+
+
+startGame();
+
+
+
