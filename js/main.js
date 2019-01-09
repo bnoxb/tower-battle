@@ -85,10 +85,8 @@ class Fighter extends Unit {
     }
 
     checkRange() { 
-        console.log(`check range is in combat: ${this.inCombat}`);
         let numOfTargets = 0;
         for (let i = 1; i < this.range + 1; i++) {
-            console.log((i * this.orient) + this.x);
             const $theUnit = $(`.square[x='${(i * this.orient) + this.x}'][y='${this.y}']`);
             if ($theUnit.hasClass(this.enemy)) {
                 this.target = $theUnit;
@@ -103,14 +101,6 @@ class Fighter extends Unit {
             this.checkMoveSpeed();
         }
             
-    }
-    checkInCombat() {
-        console.log(`check inCombat is in combat: ${this.inCombat}`);
-        if (this.inCombat === false) {
-            this.checkCollision();
-        } else {
-            this.checkRange();
-        }
     }
     checkCollision() {
         const $theUnit= $(`.square[x='${(this.orient) + this.x}'][y='${this.y}']`);
@@ -163,6 +153,7 @@ class Fighter extends Unit {
         if (this.x === this.enemyObject.unitX) {
             this.controllerObject.victory = true;
             clearInterval(this.unitIntHandler);
+            alert(`${this.controller} has won!`)
             this.levelComplete();
         } else if (this.controllerObject.victory === true || this.enemyObject.victory === true) {
             clearInterval(this.unitIntHandler);
@@ -171,7 +162,7 @@ class Fighter extends Unit {
     }
     levelComplete() {
         game.level++;
-        // setTimeout(game.resetBoard, 20);
+        //setTimeout(game.resetBoard, 20);
     }
 
     targetCheck(target) {
@@ -404,7 +395,7 @@ const startGame = () => {
     makeTower(player);
     makeTower(computer);
     setIntervals();
-    buttonsOn();
+    // buttonsOn();
 }
 const resetGame = () => {
     gameBoardSetup();
@@ -442,7 +433,7 @@ const compRandomUnits = () => {
     }
 }
 const aiIntervalSet = () => {
-    i = setInterval(compUnits, 60000);
+    i = setInterval(compUnits, 10000);
     return i;
 }
 const setIntervals = () => {
@@ -452,7 +443,19 @@ const clearIntervals = ()=>{
 
 }
 
-const buttonsOn = () => {
+$(`#make-sword`).on(`click`, function (e) {
+    makeSwordsman(player);
+    buttonsOff(e.target);
+});
+$(`#make-archer`).on(`click`, function (e) {
+    makeSwordsman(player);
+    buttonsOff(e.target);
+});
+$(`#make-defender`).on(`click`, function (e) {
+    makeSwordsman(player);
+    buttonsOff(e.target);
+});
+const buttonsOn = (e) => {
     console.log(`buttons are turned on`);
     $(`body`).on('click', function(e) {
     if (e.target.tagName === 'BUTTON'){
@@ -477,8 +480,20 @@ const buttonsOn = () => {
 }
 const buttonsOff = (e) => {
     console.log(`turning off button ${e}`);
-    $(`body`).off('click', e.target);
-    setTimeout(buttonsOn, 5000);
+    console.log(e.target);
+    if (e.target.tagName === 'BUTTON') {
+        const $thisButton = $(e.target)[0];
+        if ($($thisButton).attr(`id`) === 'make-sword') {
+            $($thisButton).off('click');
+            setTimeout(buttonsOn, 5000, e.target);
+        }else if ($($thisButton).attr(`id`) === 'make-archer') {
+            $($thisButton).off('click');
+            setTimeout(buttonsOn, 5000, e.target);
+        }else if ($($thisButton).attr(`id`) === 'make-defender') {
+            $($thisButton).off('click');
+            setTimeout(buttonsOn, 5000, e.target);
+        }
+    }
 }
 
 
