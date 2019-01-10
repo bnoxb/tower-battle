@@ -2,6 +2,7 @@ const game = {
     level: 1,
     timer: 0,
     score: 0,
+    board: [[],[],[],[],[]],
     int() {
         setInterval(() =>{
             this.timer++;
@@ -12,9 +13,8 @@ const game = {
         computer.currentUnits=[];
         player.currentTower= [];
         computer.currentTower= [];
-        clearInterval(aiInt);
-        $(`.game-board`).html(``);
-        console.log(`about to start level ${this.level}`);
+        player.victory = false;
+        computer.victory = false;
         setTimeout(resetGame, 20);
     }
 };
@@ -45,14 +45,41 @@ const computer = {
     victory: false,
     aiInt: 0,
 }
-const demon = {
-    hp:             5,
-    damage:         2,
-    attackSpeed:    250,
+const defender = {
+    hp:             70,
+    damage:         20,
+    attackSpeed:    200,
     range:          1,
-    movementSpeed:  250,
+    movementSpeed:  200,
+    defense:        6,
+}
+const archer = {
+    hp:             40,
+    damage:         20,
+    attackSpeed:    100,
+    range:          3,
+    movementSpeed:  100,
     defense:        0,
-    accuracy:       .6,
+}
+const swordsman = {
+    hp:             100,
+    damage:         50,
+    attackSpeed:    100,
+    range:          1,
+    movementSpeed:  60,
+    defense:        25,
+}
+const brick = {
+    hp: 75,
+    defense: 25,
+}
+const demon = {
+    hp:             50,
+    damage:         30,
+    attackSpeed:    100,
+    range:          1,
+    movementSpeed:  100,
+    defense:        0,
 }
 class Unit {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
@@ -75,22 +102,30 @@ class Fighter extends Unit {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
         this.timer= 0;
         this.inCombat = false;
+        this.type = `unit`;
         this.unitIntHandler;
         this.target;
         this.currentTarget;
     }
-
+    initInt() {
+        this.unitIntHandler = setInterval(this.unitInt.bind(this), 20);
+    }
+    unitInt() {
+        if(this.isAlive === true){
+            this.checkRange();
+        }   else {
+            this.death();
+            clearInterval(this.unitIntHandler);
+        }
+        this.timer++; 
+        this.checkVictory();
+    }
     render() {
         const $thisSquare = $(`.square[x='${this.x}'][y='${this.y}']`);
+        $thisSquare.removeClass(`${this.controller} ${this.name}`)
         $thisSquare.addClass(`${this.controller} ${this.name}`);
         this.dom = $thisSquare;
     }
-    checkMoveSpeed() {
-        if (this.timer % this.movementSpeed === 0) {
-            this.checkCollision();
-        } 
-    }
-
     checkRange() { 
         //console.log(`${this.name} checking range`);
         let numOfTargets = 0;
@@ -112,92 +147,21 @@ class Fighter extends Unit {
         } else {
             this.checkMoveSpeed();
         }
-            
     }
-    checkCollision() {
-    
-        const $theUnit= $(`.square[x='${(this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.controller) && $theUnit.hasClass(`tower`)) {
-            this.move(0);
-        } else if ($theUnit.hasClass(this.controller)) {
-            this.checkCollisionAhead();
-        } else {
-            this.move(0);
-        }
-    }
-    checkCollisionAhead() {
-        
-        const $theUnit= $(`.square[x='${(this.orient + this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.enemy) === false && $theUnit.hasClass(this.controller) === false) {
-            this.move(this.orient);
-        } 
-    }
-    
-    move(extra) {
-        if (($(this.dom).hasClass(`tower`) === true) && this.x < 13 && this.x > 0){
-            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name}`);
-            this.checkVictory();
-            this.x = this.x + this.orient + extra;
-            this.render();
-        }else if(this.x < 13 && this.x > 0) {
-            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
-            this.checkVictory();
-            this.x = this.x + this.orient + extra;
-            this.render();
-            
-        } 
-    }
-    
-    initInt() {
-        this.unitIntHandler = setInterval(this.unitInt.bind(this), 1);
-    }
-    unitInt() {
-        if(this.isAlive === true){
-            this.checkRange();
-        }   else {
-            this.death();
-            clearInterval(this.unitIntHandler);
-        }
-        this.timer++; 
-        this.checkVictory();
-    }
-    checkVictory() {
-        if (this.x === this.enemyObject.unitX) {
-            this.controllerObject.victory = true;
-            clearInterval(this.unitIntHandler);
-            alert(`${this.controller} has won!`)
-            this.levelComplete();
-        } else if (this.controllerObject.victory === true || this.enemyObject.victory === true) {
-            clearInterval(this.unitIntHandler);
-            this.death();
-        }
-    }
-    levelComplete() {
-        game.level++;
-        $(`#current-level`).text(`Level: ${game.level}`);
-        demon.hp= demon.hp + 2;
-        demon.damage= demon.damage + 1;
-        $(`#next-level`).prop('disabled', false);
-        //setTimeout(game.resetBoard, 20);
-    }
-
     targetCheck(target) {
-        if (target.hasClass(`tower`)){
-            return this.targetTower(target);
-        } 
-        else {
             const thisTarget = target;
-                for (let i = 0; i < this.enemyObject.currentUnits.length; i++) {
+                if (thisTarget.hasClass(`demon`) === true || thisTarget.hasClass(`swordsman`) === true || thisTarget.hasClass(`archer`) === true || thisTarget.hasClass(`defender`) === true) {
+                    for (let i = 0; i < this.enemyObject.currentUnits.length; i++) {
                         const thisTargetAttrX = parseInt(thisTarget.attr('x'));
                         if (thisTargetAttrX === this.enemyObject.currentUnits[i].x) {
                             this.currentTarget = this.enemyObject.currentUnits[i];
                             return true;
-                        }    
-                } 
-        }
-                
-    }
-    
+                        }
+                    }
+                } else if (thisTarget.hasClass(`tower`))  { 
+                    return this.targetTower(target);     
+                }
+            }
     targetTower(target) {
         const $thisTarget = target;
         for (let i = 0; i < this.enemyObject.currentTower.brix.length; i++ ) {
@@ -211,6 +175,53 @@ class Fighter extends Unit {
             }
         }
     }
+    checkMoveSpeed() {
+        if (this.timer % this.movementSpeed === 0) {
+            this.checkCollision();
+        } 
+    }
+    checkCollision() {
+        const $theUnit= $(`.square[x='${(this.orient) + this.x}'][y='${this.y}']`);
+        if ($theUnit.hasClass(this.controller) && $theUnit.hasClass(`tower`)) {
+            this.move(0);
+        } else if ($theUnit.hasClass(this.controller)) {
+            this.checkCollisionAhead();
+        } else {
+            this.move(0);
+        }
+    }
+    checkCollisionAhead() {
+        const $theUnit= $(`.square[x='${(this.orient + this.orient) + this.x}'][y='${this.y}']`);
+        if ($theUnit.hasClass(this.enemy) === false && $theUnit.hasClass(this.controller) === false) {
+            this.move(this.orient);
+        } 
+    }
+    
+    move(extra) {
+        this.checkVictory();
+        if (($(this.dom).hasClass(`tower`) === true) && this.x < 13 && this.x > 0){
+            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name}`);
+            this.x = this.x + this.orient + extra;
+            //this.animateMove();
+        }else if(this.x < 13 && this.x > 0) {
+            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
+            this.x = this.x + this.orient + extra;
+            //this.animateMove();
+        } 
+        this.render();
+    }
+
+    animateMove() {// experimental method for now
+        const xI = this.dom.offset().left;
+        const yI = this.dom.offset().top;
+        console.log(this);
+        $(this.image).animate({
+            left: xI,
+            top: yI
+        }, 250);
+    }
+    
+    
     computeActualDamage (target) {
         if (this.damage === 0) {
             return 0;
@@ -235,7 +246,6 @@ class Fighter extends Unit {
             this.attackDieCheck(target);
             this.attackKillCheck(target);
         }
-        
     }
     attackKillCheck(target) {
         if (target.hp < 1) {
@@ -243,7 +253,6 @@ class Fighter extends Unit {
             target.isAlive=false;
             this.inCombat=false;
             game.score++;
-            console.log(`the score is now ${game.score}`);
             $('#score-board').text(`Score: ${game.score}`);
         }
     }
@@ -265,44 +274,63 @@ class Fighter extends Unit {
         const thisIndex = this.controllerObject.currentUnits.indexOf(this);
         this.controllerObject.currentUnits.splice(thisIndex, 1);
     }
+    checkVictory() {
+        if (this.x === this.enemyObject.unitX) {
+            this.controllerObject.victory = true;
+            clearInterval(this.unitIntHandler);
+            clearInterval(computer.aiInt);
+            alert(`${this.controller} has won!`)
+            this.levelComplete();
+        } else if (this.controllerObject.victory === true || this.enemyObject.victory === true) {
+            clearInterval(this.unitIntHandler);
+            clearInterval(computer.aiInt);
+            this.death();
+        }
+    }
+    levelComplete() {
+        game.level++;
+        $(`#current-level`).text(`Level: ${game.level}`);
+        demon.hp= demon.hp + 2;
+        demon.damage= demon.damage + 1;
+        $(`#next-level`).prop('disabled', false);
+        //setTimeout(game.resetBoard, 20);
+    }
 }
 
 class Swordsman extends Fighter {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
-        this.hp =             10;
-        this.damage =         6;
-        this.attackSpeed =    250;
-        this.range =          1;
-        this.movementSpeed =  250;
-        this.defense =        1;
-        this.accuracy =       .6;
+        this.hp =             swordsman.hp;
+        this.damage =         swordsman.damage;
+        this.attackSpeed =    swordsman.attackSpeed;
+        this.range =          swordsman.range;
+        this.movementSpeed =  swordsman.movementSpeed;
+        this.defense =        swordsman.defense;
+        this.image = '<div class="swordsmanImage"></div>'
     }
 }
 
 class Archer extends Fighter {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
-        this.hp =             5;
-        this.damage =         3;
-        this.attackSpeed =    250;
-        this.range =          3;
-        this.movementSpeed =  250;
-        this.defense =        0;
-        this.accuracy =       .6;
+        this.hp =             archer.hp;
+        this.damage =         archer.damage;
+        this.attackSpeed =    archer.attackSpeed;
+        this.range =          archer.range;
+        this.movementSpeed =  archer.movementSpeed;
+        this.defense =        archer.defense;
     }
 }
 
 class Defender extends Fighter {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
-        this.hp =             20;
-        this.damage =         0;
-        this.attackSpeed =    250;
-        this.range =          1;
-        this.movementSpeed =  250;
-        this.defense =        2;
-        this.accuracy =       .6;
+        this.hp =             defender.hp;
+        this.damage =         defender.damage;
+        this.attackSpeed =    defender.attackSpeed;
+        this.range =          defender.range;
+        this.movementSpeed =  defender.movementSpeed;
+        this.defense =        defender.defense;
     }
 }
 
@@ -323,8 +351,9 @@ class Brick extends Unit {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject, tower) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
         this.tower = tower;
-        this.hp =       10;
-        this.defense =  1;
+        this.type = 'tower';
+        this.hp =       brick.hp;
+        this.defense =  brick.defense;
     }
     brixInt() {
         const brickInterval = setInterval(()=>{
@@ -391,6 +420,7 @@ const makeSwordsman = (controller) => {
     const newUnit = new Swordsman(`swordsman`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
     controller.currentUnits.push(newUnit);
     newUnit.render();
+    newUnit.dom.append(newUnit.image);
     newUnit.initInt();
 }
 
@@ -425,9 +455,9 @@ const makeDemon = (controller) => {
 
 const gameBoardSetup = () => {
     for (let y = 5; y > 0; y--) {
-        const $thisRow = $(`<div/>`).appendTo(`.game-board`);
+        const $thisRow = $(`<div/>`).appendTo(`.game-board`).addClass(`row`);
             for (let x = 1; x < 13; x++) {
-                $(`<div/>`).attr({x: `${x}`, y: `${y}`}).addClass(`square`).appendTo($thisRow);
+                $(`<div/>`).attr({x: `${x}`, y: `${y}`}).addClass(`col-1 square`).appendTo($thisRow);
             }
     }
 }
@@ -446,11 +476,10 @@ const resetGame = () => {
     gameBoardSetup();
     makeTower(player);
     makeTower(computer);
-    player.victory = false;
-    computer.victory = false;
+    clearInterval(aiInt);
+    $(`.game-board`).html(``);
     setIntervals();
 }
-
 const compUnits = () => {
     if (game.level === 1) {
         makeDemon(computer);
@@ -473,10 +502,6 @@ const aiIntervalSet = () => {
 const setIntervals = () => {
     aiInt = aiIntervalSet();
 }
-const clearIntervals = ()=>{
-
-}
-
 const buttonDefender = () => {
     makeDefender(player);
     $(`#make-defender`).prop(`disabled`, true);
@@ -498,12 +523,29 @@ const buttonArcher = () => {
         $(`#make-archer`).prop(`disabled`, false);
     }, 5000)
 }
-
     $(`body`).on('click', function(e) {
     if (e.target.tagName === 'BUTTON'){
         const $thisButton = $(e.target)[0];
         if ($($thisButton).attr('id') === 'start-game'){
             // startGame();
+        } else if ($($thisButton).attr(`id`) === 'make-sword') {
+            buttonSword();
+        }else if($($thisButton).attr(`id`) === `make-archer`) {
+            buttonArcher();
+        }else if($($thisButton).attr(`id`) === `make-defender`) {
+            buttonDefender();
+        }else if($($thisButton).attr(`id`)=== `next-level`) {
+            game.resetBoard();
+            $(`#next-level`).prop(`disabled`, true);
+        }  
+    }
+});
+$(`.wrapper`).on('click', function(e) {
+    if (e.target.tagName === 'BUTTON'){
+        const $thisButton = $(e.target)[0];
+        if ($($thisButton).attr(`id`) === 'swordsman-hp-up'){
+            console.log(`button was clicked`);
+            research.swordsman.hp.hpUp();
         } else if ($($thisButton).attr(`id`) === 'make-sword') {
             console.log(`button was clicked`);
             buttonSword();
@@ -517,4 +559,36 @@ const buttonArcher = () => {
         }  
     }
 });
+const research = {
+    researchProgress: 0,
+    swordsman: {
+        hp: {
+            cost: 5,
+            hpUp() {
+                console.log(`got to HpUp`);
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    game.score = game.score - this.cost;
+                    // console.log(`spent 5g on upgrade`);
+                    // swordsman.hp = swordsman.hp + 10;
+                    // console.log(`upgraded swordsman hp! Now has ${swordsman.hp}`);
+                    this.hpUpInterval();
+                }
+            },
+            hpUpInterval() {
+                console.log(`in the interval`);
+                console.log(research.researchProgress);
+                while (research.researchProgress < 101) {
+                    console.log(`in the while loop`);
+                    setTimeout(function(){
+                        research.researchProgress+=25;
+                        console.log(`Research Progress: ${research.researchProgress}%`);
+                    }, 2000);
+                }
+                swordsman.hp+= 10;
+                research.researchProgress = 0;
+            }
+        }
+    }
+}
 startGame();

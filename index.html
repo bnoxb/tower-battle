@@ -6,7 +6,7 @@
     <title>Tower Battle</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-    <link rel="stylesheet" type="text/css" media="screen" href="css/reset.css" />
+    <!-- <link rel="stylesheet" type="text/css" media="screen" href="css/reset.css" /> -->
     <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
     <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/velocity/1.5.1/velocity.js'></script>
@@ -17,25 +17,64 @@
 <body>
     <div class="container wrapper">
        <div class="row">
-           <div class="col-2">
+           <div class="col-3">
                <button id="start-game">Start Game</button>
                <button id="next-level" disabled='true'>Go to next level</button>
-           </div>
-           <div class="col-5">
-                <div id="current-level">Level: 1</div>
+               <div id="current-level">Level: 1</div>
                 <div id="score-board">Score: 0</div>
            </div>
+           <div class="col-4"></div>
            <div class="col-5">
-
+                <div class="btn-group dropleft">
+                    <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Upgrade Swordsman
+                    </button>
+                    <div class="dropdown-menu">
+                        <!-- Dropdown menu links -->
+                        <button type="button" class="btn upgrade" id="swordsman-hp-up">Upgrade Swordsman Hitpoints 5g</button>
+                        <button type="button" class="btn upgrade swordsmanDefenseUp">Upgrade Swordsman Defense 5g</button>
+                        <button type="button" class="btn upgrade swordsmanDamageUp">Upgrade Swordsman Damage 5g</button>
+                        <button type="button" class="btn upgrade swordsmanAttackSpeedUp">Upgrade Swordsman Attack Speed 20g</button>
+                    </div>
+                </div>
+                <div class="btn-group dropleft">
+                        <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Upgrade Archer
+                        </button>
+                        <div class="dropdown-menu">
+                            <!-- Dropdown menu links -->
+                            <button type="button" class="btn upgrade archerHPUp">Upgrade Archer Hitpoints 5g</button>
+                            <button type="button" class="btn upgrade archerDefenseUp">Upgrade Archer Defense 5g</button>
+                            <button type="button" class="btn upgrade archerDamageUp">Upgrade Archer Damage 5g</button>
+                            <button type="button" class="btn upgrade archerAttackSpeedUp">Upgrade Archer Attack Speed 20g</button>
+                        </div>
+                </div>
+                <div class="btn-group dropleft">
+                        <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Upgrade Swordsman
+                        </button>
+                        <div class="dropdown-menu">
+                            <!-- Dropdown menu links -->
+                            <button type="button" class="btn upgrade defenderHPUp">Upgrade Defender Hitpoints 5g</button>
+                            <button type="button" class="btn upgrade defenderDefenseUp">Upgrade Defender Defense 5g</button>
+                            <button type="button" class="btn upgrade defenderDamageUp">Upgrade Defender Damage 5g</button>
+                            <button type="button" class="btn upgrade defenderMoveSpeedUp">Upgrade Defender Move Speed 20g</button>
+                        </div>
+                </div>
            </div>
        </div> 
+       <div class='row'>
+           <div class='col-3'>
+                <div class="progress">
+                    <div class="progress-bar research-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Current Research: None</div>
+                </div>
+           </div>
+       </div>
     </div>
     
         
     </div>
-    <div class='game-board'>
-        
-    </div>
+    <div class='container game-board '></div>
     <button id='make-sword'>make swordsman</button>
     <button id='make-archer'>make archer</button>
     <button id='make-defender'>make defender</button>
