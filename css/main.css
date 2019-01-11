@@ -52,6 +52,10 @@ body {
     background-size: cover;
     
 }
+.boss {
+    background: url('../images/fat-demon-01.jpg');
+    background-size: cover;
+}
 .tower {
     background: url('../images/brick-purple.png');
     background-size: 100% 100%;
@@ -97,3 +101,4 @@ body {
     color: rgba(11, 0, 75,.75);
     font-family: 'Staatliches', cursive;
 }
+

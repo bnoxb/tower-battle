@@ -97,6 +97,14 @@ const demon = {
     movementSpeed:  100,
     defense:        0,
 }
+const boss = {
+    hp:             500,
+    damage:         70,
+    attackSpeed:    100,
+    range:          1,
+    movementSpeed:  100,
+    defense:        0,
+}
 class Unit {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
         this.name = name;
@@ -197,7 +205,7 @@ class Fighter extends Unit {
     targetCheck(target) {
             const thisTarget = target;
             let falseCounter = 0;
-                if (thisTarget.hasClass(`demon`) === true || thisTarget.hasClass(`swordsman`) === true || thisTarget.hasClass(`archer`) === true || thisTarget.hasClass(`defender`) === true) {
+                if (thisTarget.hasClass(`demon`) === true || thisTarget.hasClass(`swordsman`) === true || thisTarget.hasClass(`archer`) === true || thisTarget.hasClass(`defender`) === true || thisTarget.hasClass(`boss`) === true) {
                     for (let i = 0; i < this.enemyObject.currentUnits.length; i++) {
                         const thisTargetAttrX = parseInt(thisTarget.attr('x'));
                         if (thisTargetAttrX === this.enemyObject.currentUnits[i].x) {
@@ -217,7 +225,7 @@ class Fighter extends Unit {
     targetCheckFriendly(target) {
         const thisTarget = target;
         let falseCounter = 0;
-            if (thisTarget.hasClass(`demon`) === true || thisTarget.hasClass(`swordsman`) === true || thisTarget.hasClass(`archer`) === true || thisTarget.hasClass(`defender`) === true) {
+            if (thisTarget.hasClass(`demon`) === true || thisTarget.hasClass(`swordsman`) === true || thisTarget.hasClass(`archer`) === true || thisTarget.hasClass(`defender`) === true || thisTarget.hasClass(`boss`) === true) {
                 for (let i = 0; i < this.controllerObject.currentUnits.length; i++) {
                     const thisTargetAttrX = parseInt(thisTarget.attr('x'));
                     if (thisTargetAttrX === this.controllerObject.currentUnits[i].x) {
@@ -404,7 +412,7 @@ class Fighter extends Unit {
             this.controllerObject.victory = true;
             clearInterval(this.unitIntHandler);
             clearInterval(computer.aiInt);
-            alert(`${this.controller} has won!`)
+            alert(`${this.controller} has beat level ${game.level}!`);
             this.levelComplete();
         } else if (this.controllerObject.victory === true || this.enemyObject.victory === true) {
             clearInterval(this.unitIntHandler);
@@ -432,7 +440,6 @@ class Swordsman extends Fighter {
         this.range =          swordsman.range;
         this.movementSpeed =  swordsman.movementSpeed;
         this.defense =        swordsman.defense;
-        this.image = '<div class="swordsmanImage"></div>'
     }
 }
 
@@ -469,10 +476,19 @@ class Demon extends Fighter {
         this.range =          demon.range;
         this.movementSpeed =  demon.movementSpeed;
         this.defense =        demon.defense;
-        this.accuracy =       demon.accuracy;
     }
 }
-
+class Boss extends Fighter {
+    constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject) {
+        super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
+        this.hp =             boss.hp;
+        this.damage =         boss.damage;
+        this.attackSpeed =    boss.attackSpeed;
+        this.range =          boss.range;
+        this.movementSpeed =  boss.movementSpeed;
+        this.defense =        boss.defense;
+    }
+}
 class Brick extends Unit {
     constructor(name, controller, controllerObject, x, y, orient, enemy, enemyObject, tower) {
         super(name, controller, controllerObject, x, y, orient, enemy, enemyObject)
@@ -580,6 +596,15 @@ const makeDemon = (controller) => {
             newUnit.initInt();
             game.unitCount++;
 }
+const makeBoss = (controller) => {
+    let newUnitX = controller.unitX;
+    let newUnitY = controller.unitY;
+    const newUnit = new Boss(`boss`, controller.name, controller, newUnitX, newUnitY, controller.affinity, controller.enemy.name, controller.enemy);
+    controller.currentUnits.push(newUnit);
+    newUnit.render();
+    newUnit.initInt();
+    game.unitCount++;
+}
 
 const gameBoardSetup = () => {
     for (let y = 5; y > 0; y--) {
@@ -598,6 +623,7 @@ const startGame = () => {
     game.int();
     makeTower(player);
     makeTower(computer);
+    research.initInt();
     setIntervals();
     // buttonsOn();
 }
@@ -606,7 +632,15 @@ const resetGame = () => {
     makeTower(player);
     makeTower(computer);
     clearInterval(computer.aiInt);
-    setIntervals();
+    if (game.level % 5 === 0) {
+        alert(`starting boss level!`);
+        makeBoss(computer);
+    }else{
+        makeTower(player);
+        makeTower(computer);
+        setIntervals(); 
+    }
+    
 }
 const compUnits = () => {
     if (game.level === 1) {
@@ -630,7 +664,7 @@ const aiIntervalSet = () => {
 }
 const setIntervals = () => {
     computer.aiInt = aiIntervalSet();
-    research.initInt();
+    
 }
 const buttonDefender = () => {
     makeDefender(player);
@@ -672,7 +706,7 @@ $(`body`).on('click', function(e) {
         }  
     }
 });
-$(`.wrapper`).on('click', function(e) {
+$(`body`).on('click', function(e) {
     if (e.target.tagName === 'BUTTON'){
         const $thisButton = $(e.target)[0];
         if ($($thisButton).hasClass(`sword-up`)) {
@@ -1109,6 +1143,7 @@ const archerUpgrades = {
         } else if ($(target).attr(`id`)===`archer-defense-up`) {
             this.defense.defenseUp();
         } else if ($(target).attr(`id`)===`archer-damage-up`) {
+            console.log(`archer damage upgrade clicked`);
             this.damage.damageUp();
         } else if ($(target).attr(`id`)===`archer-attack-speed-up`) {
             this.attackSpeed.attackSpeedUp();
