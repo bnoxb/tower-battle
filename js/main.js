@@ -1,4 +1,5 @@
 const game = {
+    unitCount: 0,
     level: 1,
     timer: 0,
     score: 0,
@@ -13,13 +14,26 @@ const game = {
         player.currentUnits=[];
         computer.currentUnits=[];
         player.currentTower= [];
-        computer.currentTower= [];clearInterval(aiInt);
+        computer.currentTower= [];
+        clearInterval(computer.aiInt);
         player.victory = false;
         computer.victory = false;
         setTimeout(resetGame, 20);
         $(`.game-board`).html(``);
     }
 };
+const flyInVelocity = (offsetX, offsetY) => {
+    $.Velocity.RegisterEffect(`transition.flyIn`, {
+     defaultDuration: 700,
+     calls:[
+       [{
+            left: offsetX,
+            top: offsetY,
+            opacity: 1,
+       }]  
+     ],  
+ });
+}
 const player = {
     ID:   ``,
     name: `player`,
@@ -107,6 +121,7 @@ class Fighter extends Unit {
         this.timer= 0;
         this.inCombat = false;
         this.type = `unit`;
+        this.unitId;
         this.unitIntHandler;
         this.target;
         this.currentTarget;
@@ -125,12 +140,21 @@ class Fighter extends Unit {
         this.checkVictory();
     }
     render() {
+        this.unitId = game.unitCount;
         const $thisSquare = $(`.square[x='${this.x}'][y='${this.y}']`);
-        $thisSquare.removeClass(`${this.controller} ${this.name}`);
+        $thisSquare.removeClass(`${this.controller} ${this.name} ${this.name}-gif`);
         $thisSquare.addClass(`${this.controller} ${this.name}`);
-        const offsetX = $thisSquare.offset().left;
-        console.log(offsetX);
+        
         this.dom = $thisSquare;
+    }
+    makeDivImage() { // Needs work**
+        const offsetX = $thisSquare.offset().left;
+        const offsetY = $thisSquare.offset().top;
+        $(`.game-board`).append(`<div class="col-1 ${this.name}Image" id="${game.unitCount}"></div>`);
+        $(`#${this.unitId}`).css({
+            left: offsetX,
+            top: offsetY
+        });
     }
     renderStatsBar(damageDealt, targetX) {
         this.$statsBar = $(`<div class="stats-bar" id="${targetX}">${damageDealt}</div>`);
@@ -139,7 +163,8 @@ class Fighter extends Unit {
         const $thisSquareUpOne = $(`.square[x='${targetX}'][y=${$thisY + 1}]`);// need to add class to this
         $thisSquareUpOne.append(this.$statsBar);
         $(`#${targetX}`).velocity("transition.slideUpOut", function(){
-            $(`#${targetX}`).remove();
+            $(`div#${targetX}`).remove();
+    
         });
         
     }
@@ -279,24 +304,27 @@ class Fighter extends Unit {
     move(extra) {
         this.checkVictory();
         if (($(this.dom).hasClass(`tower`) === true) && this.x < 13 && this.x > 0){
-            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name}`);
+            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.name}-gif`);
             this.x = this.x + this.orient + extra;
             //this.animateMove();
         }else if(this.x < 13 && this.x > 0) {
-            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
+            $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller} ${this.name}-gif`);
             this.x = this.x + this.orient + extra;
             //this.animateMove();
         } 
         this.render();
     }
-    animateMove() {// experimental method for now
-        const xI = this.dom.offset().left;
-        const yI = this.dom.offset().top;
-        console.log(this);
-        $(this.image).animate({
+    animateMove() { // Needs work
+        console.log(`in the animateMove`);
+        const xI = $(`.square[x="${this.x}"][y="${this.y}"]`).offset().left;
+        const yI = $(`.square[x="${this.x}"][y="${this.y}"]`).offset().top;
+        console.log(xI);
+        $(`.${this.name}Image#${this.unitId}`).animate({
             left: xI,
             top: yI
-        }, 250);
+        }, 1000, function(){
+            console.log(`animation complete`);
+        });
     }
     computeActualDamage (target) {
         if (this.damage === 0) {
@@ -311,16 +339,16 @@ class Fighter extends Unit {
         }
     }
     attack(target) {
-        console.log(`${this.name} is targting ${target}`);
         if (target.hp > 0) {
             const actualDamage = this.computeActualDamage(target);
-                console.log(`${this.controller}${this.name} did ${actualDamage} damage to ${target.controller}${target.name}`);
             target.hp = target.hp - actualDamage;
+            this.dom.addClass(`${this.name}-gif`);
             this.renderStatsBar(actualDamage, target.x);
-                console.log(`${target.controller}'s ${target.name} has ${target.hp} hp left!`); 
             this.attackKillCheck(target);
+            // if($(this.dom).hasClass(`archer`)) {
+            //     this.flyArrow(target);
+            // }
         }   else if (target.isAlive === true) {
-                console.log(`${target.controller}'s ${target.name} is dead!`);
                 target.isAlive = false;
                 this.inCombat = false;
         } else {
@@ -328,9 +356,23 @@ class Fighter extends Unit {
             this.attackKillCheck(target);
         }
     }
+
+    flyArrow(target) { // another work in progress animation
+        const newX = this.currentTarget.x;
+        const newY = this.currentTarget.y;
+        const offsetX = $(`.square[x="${newX}"][y="${newY}"]`).offset().left;
+        const offsetY = $(`.square[x="${newX}"][y="${newY}"]`).offset().top;
+        const $arrow = $(`<img id="arrow" src="./images/arrow.png">`);
+        flyInVelocity(offsetX, offsetY);
+        $(this.dom).append($arrow);
+        $(`img#arrow`).velocity('transition.flyIn');
+        
+    }
+    attackAnimate() {
+
+    }
     attackKillCheck(target) {
         if (target.hp < 1) {
-            console.log(`using attackKillCheck on ${target.controller}'s ${target.name}`);
             target.isAlive=false;
             this.inCombat=false;
             game.score++;
@@ -346,12 +388,12 @@ class Fighter extends Unit {
     }
     attackSpeedCheck() {
         if (this.timer % this.attackSpeed === 0) {
+            this.dom.removeClass(`${this.name}-gif`);
             this.attack(this.currentTarget);
         } 
     }
     death() {
-        console.log(`${this.controller}'s ${this.name} is proclaimed dead by the death(); function!`);
-        $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller}`);
+        $(`.square[x='${this.x}'][y='${this.y}']`).removeClass(`${this.name} ${this.controller} ${this.name}-gif`);
         const thisIndex = this.controllerObject.currentUnits.indexOf(this);
         this.controllerObject.currentUnits.splice(thisIndex, 1);
     }
@@ -374,6 +416,7 @@ class Fighter extends Unit {
         demon.hp= demon.hp + 2;
         demon.damage= demon.damage + 1;
         $(`#next-level`).prop('disabled', false);
+        clearInterval(computer.aiInt())
         //setTimeout(game.resetBoard, 20);
     }
 }
@@ -503,6 +546,7 @@ const makeSwordsman = (controller) => {
     newUnit.render();
     newUnit.dom.append(newUnit.image);
     newUnit.initInt();
+    game.unitCount++;
 }
 
 const makeArcher = (controller) => {
@@ -512,7 +556,7 @@ const makeArcher = (controller) => {
         controller.currentUnits.push(newUnit);
         newUnit.render();
         newUnit.initInt();
-       
+        game.unitCount++;
 }
 
 const makeDefender = (controller) => {
@@ -522,7 +566,7 @@ const makeDefender = (controller) => {
     controller.currentUnits.push(newUnit);
     newUnit.render();
     newUnit.initInt();
-        
+    game.unitCount++;    
 }
 
 const makeDemon = (controller) => {
@@ -532,6 +576,7 @@ const makeDemon = (controller) => {
             controller.currentUnits.push(newUnit);
             newUnit.render();
             newUnit.initInt();
+            game.unitCount++;
 }
 
 const gameBoardSetup = () => {
@@ -557,7 +602,7 @@ const resetGame = () => {
     gameBoardSetup();
     makeTower(player);
     makeTower(computer);
-    clearInterval(aiInt);
+    clearInterval(computer.aiInt);
     setIntervals();
 }
 const compUnits = () => {
@@ -580,7 +625,7 @@ const aiIntervalSet = () => {
     return i;
 }
 const setIntervals = () => {
-    aiInt = aiIntervalSet();
+    computer.aiInt = aiIntervalSet();
     research.initInt();
 }
 const buttonDefender = () => {
@@ -625,13 +670,10 @@ $(`.wrapper`).on('click', function(e) {
     if (e.target.tagName === 'BUTTON'){
         const $thisButton = $(e.target)[0];
         if ($($thisButton).hasClass(`sword-up`)) {
-            console.log(`button was clicked`);
             swordsmanUpgrades.whichButton($thisButton);
         } else if ($($thisButton).hasClass(`archer-up`)) {
-            console.log(`button was clicked`);
             archerUpgrades.whichButton($thisButton);
         }else if ($($thisButton).hasClass(`defender-up`)) {
-            console.log(`button was clicked`);
             defenderUpgrades.whichButton($thisButton);
         }
     }
@@ -695,6 +737,7 @@ const swordsmanUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     defense: {
@@ -743,6 +786,7 @@ const swordsmanUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     damage: {
@@ -791,6 +835,7 @@ const swordsmanUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     attackSpeed: {
@@ -839,10 +884,10 @@ const swordsmanUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     whichButton(target){
-        console.log(target);
         if($(target).attr(`id`)===`swordsman-hp-up`){
             this.hp.hpUp();
         } else if ($(target).attr(`id`)===`swordsman-defense-up`) {
@@ -901,6 +946,7 @@ const archerUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     defense: {
@@ -949,6 +995,7 @@ const archerUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     damage: {
@@ -997,6 +1044,7 @@ const archerUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     attackSpeed: {
@@ -1045,10 +1093,11 @@ const archerUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     whichButton(target){
-        console.log(target);
+    
         if($(target).attr(`id`)===`archer-hp-up`){
             this.hp.hpUp();
         } else if ($(target).attr(`id`)===`archer-defense-up`) {
@@ -1107,6 +1156,7 @@ const defenderUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     defense: {
@@ -1155,6 +1205,7 @@ const defenderUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     damage: {
@@ -1203,6 +1254,7 @@ const defenderUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     moveSpeed: {
@@ -1251,10 +1303,10 @@ const defenderUpgrades = {
         render() {
             $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
             $(`.research-bar`).text(research.currentResearch);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     },
     whichButton(target){
-        console.log(target);
         if($(target).attr(`id`)===`defender-hp-up`){
             this.hp.hpUp();
         } else if ($(target).attr(`id`)===`defender-defense-up`) {
