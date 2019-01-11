@@ -6,46 +6,47 @@
     margin-top: -3px;
 }
 
+}
 .swordsman {
-    background: url(../images/swordsman01.png);
-    background-size: cover;
+    background: url(../images/swordsman-01.png);
+    background-size: 100% 100%;
     z-index: 1;
 }
 .swordsmanImage {
-    background: url(../images/swordsman01.png);
-    background-size: cover;
+    background: url(../images/swordsman-01.png);
+    background-size: 100% 100%;
 }
 .archer {
-    background: url(../images/golbin-archer.jpg);
-    background-size: cover;
+    background: url(../images/archer-01.png);
+    background-size: 100% 100%;
     z-index: 1;
 }
 
 .defender {
-    background: url(../images/shield01.png);
-    background-size: cover;
+    background: url(../images/defender-01.png);
+    background-size: 100% 100%;
 }
 
 .computer {
     background: blue;
 }
 
-.tower {
-    background: url(../images/brick01.jpg);
-    background-size: cover;
-    z-index: -1;
-}
 .wrapper {
     background: grey;
 }
 
 .demon {
-    background: url(../images/demon01.jpeg);
+    background: url(../images/demon-01.png);
     background-size: cover;
-    z-index: 1;
+    
 }
-button .upgrade {
+.tower {
+    background: url(../images/brick01.jpg);
+    background-size: 100% 100%;
+    z-index: -2;
+.upgrade {
     display: inline-block;
+    
 
 }
 .research-bar {

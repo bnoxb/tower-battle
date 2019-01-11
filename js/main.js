@@ -9,10 +9,11 @@ const game = {
         }, 1000);
     },
     resetBoard() {
+        
         player.currentUnits=[];
         computer.currentUnits=[];
         player.currentTower= [];
-        computer.currentTower= [];
+        computer.currentTower= [];clearInterval(aiInt);
         player.victory = false;
         computer.victory = false;
         setTimeout(resetGame, 20);
@@ -127,6 +128,8 @@ class Fighter extends Unit {
         const $thisSquare = $(`.square[x='${this.x}'][y='${this.y}']`);
         $thisSquare.removeClass(`${this.controller} ${this.name}`);
         $thisSquare.addClass(`${this.controller} ${this.name}`);
+        const offsetX = $thisSquare.offset().left;
+        console.log(offsetX);
         this.dom = $thisSquare;
     }
     renderStatsBar(damageDealt, targetX) {
@@ -254,9 +257,7 @@ class Fighter extends Unit {
         const $isBrickThere = this.targetTower($theUnit);
         const $theEnemyUnitObject = this.targetCheck($theUnit);
         const $theFriendlyUnitObject = this.targetCheckFriendly($theUnit);
-        console.log(`is a brick there: ${$isBrickThere} is an enemy there: ${$theEnemyUnitObject} is a friendly there: ${$theFriendlyUnitObject}`)
         if (($isBrickThere === false) && ($theEnemyUnitObject === false) && ($theFriendlyUnitObject === false)){
-            console.log(`there is no brick at ${$theUnit}`);
             if ($theUnit.hasClass(this.controller) ===true && $theUnit.hasClass(`tower`) === true && $theUnit.hasClass(`${this.enemy}`) === false) {
                 this.move(0);
             } else {
@@ -271,7 +272,6 @@ class Fighter extends Unit {
         const $isBrickThere = this.targetTower($theUnit);
         const $theEnemyUnitObject = this.targetCheck($theUnit);
         const $theFriendlyUnitObject = this.targetCheckFriendly($theUnit);
-        console.log(`is a brick there: ${$isBrickThere} is an enemy there: ${$theEnemyUnitObject} is a friendly there: ${$theFriendlyUnitObject}`)
         if ($isBrickThere === false && $theFriendlyUnitObject === false && $theEnemyUnitObject === false) {
             this.move(this.orient);
         }
@@ -334,7 +334,7 @@ class Fighter extends Unit {
             target.isAlive=false;
             this.inCombat=false;
             game.score++;
-            $('#score-board').text(`Score: ${game.score}`);
+            $('#score-board').text(`Gold: ${game.score}`);
         }
     }
     attackDieCheck(target) {
