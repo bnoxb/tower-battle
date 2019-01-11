@@ -591,6 +591,7 @@ const gameBoardSetup = () => {
 }
 
 const startGame = () => {
+    $(`body`).css('background-image', 'url("./images/forest-dark-background.jpg")');
     gameBoardSetup();
     player.enemy= computer;
     computer.enemy = player;
@@ -1325,10 +1326,13 @@ const defenderUpgrades = {
 }
 
 const renderGameToDom = () => {
+    $(`body`).html(``);
     $(`body`).append(`<div class="container wrapper">
     <div class="row">
+    <div class="col-12 title">Tower Battle</div>
+    </div>
+    <div class="row">
         <div class="col-2 data-bar">
-            <button id="start-game">Start Game</button>
             <button id="next-level" disabled='true'>Go to next level</button>
             <div id="current-level">Level: 1</div>
              <div id="score-board">Gold: 0</div>
