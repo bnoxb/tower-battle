@@ -1,12 +1,17 @@
-.square {
+body {
+    background: url('../images/forest-dark-background.jpg') no-repeat center center fixed; 
+    background-size: cover;
+    height: 100%;
+    width: 100%;
+}
+.wrapper {
     
+}
+.square {
     display: inline-block;
     height: 100px;
     width: 100px;
     margin-top: -3px;
-}
-.wrapper {
-    background: grey;
 }
 .swordsman {
     background-image: url(../images/swordsman-01.png);
@@ -37,16 +42,15 @@
 .computer {
     background: blue;
 }
-
-
-
 .demon {
     background: url(../images/demon-01.png);
     background-size: cover;
     
 }
 .tower {
-    background: url(../images/brick01.jpg);
+    background: url('../images/brick-purple.png');
+    background-size: 100% 100%;
+    border: solid 5px rgba(11, 0, 75);
     background-size: 100% 100%;
     z-index: -2;
 }
@@ -54,12 +58,31 @@
     display: inline-block;
     
 }
+.progress {
+    height: 50px;
+    opacity: .75;
+}
 .research-bar {
     width: 0;
+    font-size: 18px;
+    color: black;
+    text-align: center;
 }
 #arrow{
     display: inline-block;
     position: absolute;
     width: 15px;
     opacity: 0;
+}
+.stats-bar {
+    color: red;
+}
+.data-bar{
+    background: rgba(156, 250, 250, .75);
+}
+.dropdown-toggle{
+    background: rgba(11, 0, 75,.75);
+}
+.dropdown-toggle:hover{
+    background: rgba(40, 6, 231, 0.75);
 }

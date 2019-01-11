@@ -17,14 +17,20 @@
 <body>
     <div class="container wrapper">
        <div class="row">
-           <div class="col-3">
+           <div class="col-2 data-bar">
                <button id="start-game">Start Game</button>
                <button id="next-level" disabled='true'>Go to next level</button>
                <div id="current-level">Level: 1</div>
                 <div id="score-board">Gold: 0</div>
            </div>
-           <div class="col-4"></div>
-           <div class="col-5">
+           <div class="col-3">
+                <div class="progress">
+                    <div class="progress-bar research-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        Research: none
+                    </div>
+                </div>
+           </div>
+           <div class="col-7">
                 <div class="btn-group dropleft">
                     <button type="button" class="btn btn-secondary btn-block dropdown-toggle upgrade" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Upgrade Swordsman
@@ -63,13 +69,6 @@
                 </div>
            </div>
        </div> 
-       <div class='row'>
-           <div class='col-3'>
-                <div class="progress">
-                    <div class="progress-bar research-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Research: none</div>
-                </div>
-           </div>
-       </div>
     </div>
     </div>
     <div class='container game-board '></div>
