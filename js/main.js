@@ -16,6 +16,7 @@ const game = {
         player.victory = false;
         computer.victory = false;
         setTimeout(resetGame, 20);
+        $(`.game-board`).html(``);
     }
 };
 const player = {
@@ -92,6 +93,8 @@ class Unit {
         this.enemy = enemy;
         this.enemyObject = enemyObject;
         this.isAlive = true;
+        this.targetX;
+        this.$statsBar;
         this.dom;
     }
     
@@ -122,19 +125,29 @@ class Fighter extends Unit {
     }
     render() {
         const $thisSquare = $(`.square[x='${this.x}'][y='${this.y}']`);
-        $thisSquare.removeClass(`${this.controller} ${this.name}`)
+        $thisSquare.removeClass(`${this.controller} ${this.name}`);
         $thisSquare.addClass(`${this.controller} ${this.name}`);
         this.dom = $thisSquare;
     }
+    renderStatsBar(damageDealt, targetX) {
+        this.$statsBar = $(`<div class="stats-bar" id="${targetX}">${damageDealt}</div>`);
+        const $thisY = this.y;
+        const $thisX = this.x;
+        const $thisSquareUpOne = $(`.square[x='${targetX}'][y=${$thisY + 1}]`);// need to add class to this
+        $thisSquareUpOne.append(this.$statsBar);
+        $(`#${targetX}`).velocity("transition.slideUpOut", function(){
+            $(`#${targetX}`).remove();
+        });
+        
+    }
     checkRange() { 
-        //console.log(`${this.name} checking range`);
         let numOfTargets = 0;
         for (let i = 1; i < this.range + 1; i++) {
             const $theUnit = $(`.square[x='${(i * this.orient) + this.x}'][y='${this.y}']`);
             const theUnitObject = this.targetCheck($theUnit);
             if (theUnitObject === true){
-                //console.log(`${this.controller}'s ${this.name} has a target = true`)
                 if (this.currentTarget.controller === this.enemy) {
+                    this.targetX = $theUnit.attr(`x`);
                     this.target = $theUnit;
                     this.inCombat = true;
                     numOfTargets++;
@@ -142,6 +155,9 @@ class Fighter extends Unit {
                 }
             }
         }
+        this.moveOrAttack(numOfTargets);
+    }
+    moveOrAttack(numOfTargets){
         if (numOfTargets > 0) {
             this.attackSpeedCheck();
         } else {
@@ -150,29 +166,82 @@ class Fighter extends Unit {
     }
     targetCheck(target) {
             const thisTarget = target;
+            let falseCounter = 0;
                 if (thisTarget.hasClass(`demon`) === true || thisTarget.hasClass(`swordsman`) === true || thisTarget.hasClass(`archer`) === true || thisTarget.hasClass(`defender`) === true) {
                     for (let i = 0; i < this.enemyObject.currentUnits.length; i++) {
                         const thisTargetAttrX = parseInt(thisTarget.attr('x'));
                         if (thisTargetAttrX === this.enemyObject.currentUnits[i].x) {
                             this.currentTarget = this.enemyObject.currentUnits[i];
                             return true;
+                        } else {
+                            falseCounter++;
                         }
                     }
                 } else if (thisTarget.hasClass(`tower`))  { 
-                    return this.targetTower(target);     
+                    return this.targetTower(thisTarget);     
+                } else {
+                    return false;
+                } 
+                return this.falseCounterCheckUnits(falseCounter);  
+        }
+    targetCheckFriendly(target) {
+        const thisTarget = target;
+        let falseCounter = 0;
+            if (thisTarget.hasClass(`demon`) === true || thisTarget.hasClass(`swordsman`) === true || thisTarget.hasClass(`archer`) === true || thisTarget.hasClass(`defender`) === true) {
+                for (let i = 0; i < this.controllerObject.currentUnits.length; i++) {
+                    const thisTargetAttrX = parseInt(thisTarget.attr('x'));
+                    if (thisTargetAttrX === this.controllerObject.currentUnits[i].x) {
+                        this.currentTarget = this.controllerObject.currentUnits[i];
+                        return true;
+                    } else {
+                        falseCounter++;
+                    }
                 }
-            }
+            } else if (thisTarget.hasClass(`tower`))  { 
+                return this.targetTower(thisTarget);     
+            } else {
+                return false;
+            } 
+            return this.falseCounterCheckFriendlyUnits(falseCounter);  
+    }
     targetTower(target) {
         const $thisTarget = target;
-        for (let i = 0; i < this.enemyObject.currentTower.brix.length; i++ ) {
+        let falseCounter = 0;
+        if($thisTarget.hasClass(`tower`)) {
+            for (let i = 0; i < this.enemyObject.currentTower.brix.length; i++ ) {
             const thisTargetAttrX = parseInt($thisTarget.attr(`x`));
             const thisTargetAttrY = parseInt($thisTarget.attr(`y`));
             if (thisTargetAttrX === this.enemyObject.currentTower.brix[i].x && thisTargetAttrY === this.enemyObject.currentTower.brix[i].y) {
                 this.currentTarget = this.enemyObject.currentTower.brix[i];
                 return true;
-                // console.log(target.currentTower[i]);
-                //this.attack(this.currentTarget);
+            } else {
+                falseCounter++;
             }
+        }
+        } else {
+            return false;
+        }
+        return this.falseCounterCheckTower(falseCounter);
+    }
+    falseCounterCheckUnits(falseCounter) {
+        if (falseCounter >= this.enemyObject.currentUnits.length) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    falseCounterCheckFriendlyUnits(falseCounter) {
+        if (falseCounter >= this.controllerObject.currentUnits.length) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    falseCounterCheckTower(falseCounter) {
+        if (falseCounter >= this.enemyObject.currentTower.brix.length) {
+            return false;
+        } else {
+            return true;
         }
     }
     checkMoveSpeed() {
@@ -182,21 +251,31 @@ class Fighter extends Unit {
     }
     checkCollision() {
         const $theUnit= $(`.square[x='${(this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.controller) && $theUnit.hasClass(`tower`)) {
-            this.move(0);
-        } else if ($theUnit.hasClass(this.controller)) {
+        const $isBrickThere = this.targetTower($theUnit);
+        const $theEnemyUnitObject = this.targetCheck($theUnit);
+        const $theFriendlyUnitObject = this.targetCheckFriendly($theUnit);
+        console.log(`is a brick there: ${$isBrickThere} is an enemy there: ${$theEnemyUnitObject} is a friendly there: ${$theFriendlyUnitObject}`)
+        if (($isBrickThere === false) && ($theEnemyUnitObject === false) && ($theFriendlyUnitObject === false)){
+            console.log(`there is no brick at ${$theUnit}`);
+            if ($theUnit.hasClass(this.controller) ===true && $theUnit.hasClass(`tower`) === true && $theUnit.hasClass(`${this.enemy}`) === false) {
+                this.move(0);
+            } else {
+                this.move(0);
+            }
+        } else if($theFriendlyUnitObject === true) {
             this.checkCollisionAhead();
-        } else {
-            this.move(0);
         }
     }
     checkCollisionAhead() {
         const $theUnit= $(`.square[x='${(this.orient + this.orient) + this.x}'][y='${this.y}']`);
-        if ($theUnit.hasClass(this.enemy) === false && $theUnit.hasClass(this.controller) === false) {
+        const $isBrickThere = this.targetTower($theUnit);
+        const $theEnemyUnitObject = this.targetCheck($theUnit);
+        const $theFriendlyUnitObject = this.targetCheckFriendly($theUnit);
+        console.log(`is a brick there: ${$isBrickThere} is an enemy there: ${$theEnemyUnitObject} is a friendly there: ${$theFriendlyUnitObject}`)
+        if ($isBrickThere === false && $theFriendlyUnitObject === false && $theEnemyUnitObject === false) {
             this.move(this.orient);
-        } 
+        }
     }
-    
     move(extra) {
         this.checkVictory();
         if (($(this.dom).hasClass(`tower`) === true) && this.x < 13 && this.x > 0){
@@ -210,7 +289,6 @@ class Fighter extends Unit {
         } 
         this.render();
     }
-
     animateMove() {// experimental method for now
         const xI = this.dom.offset().left;
         const yI = this.dom.offset().top;
@@ -220,14 +298,16 @@ class Fighter extends Unit {
             top: yI
         }, 250);
     }
-    
-    
     computeActualDamage (target) {
         if (this.damage === 0) {
             return 0;
         } else {
             const actualDamage = this.damage - target.defense;
-            return actualDamage;
+            if(actualDamage > 0){
+                return actualDamage;
+            }else {
+                return 0;
+            }
         }
     }
     attack(target) {
@@ -236,6 +316,7 @@ class Fighter extends Unit {
             const actualDamage = this.computeActualDamage(target);
                 console.log(`${this.controller}${this.name} did ${actualDamage} damage to ${target.controller}${target.name}`);
             target.hp = target.hp - actualDamage;
+            this.renderStatsBar(actualDamage, target.x);
                 console.log(`${target.controller}'s ${target.name} has ${target.hp} hp left!`); 
             this.attackKillCheck(target);
         }   else if (target.isAlive === true) {
@@ -477,7 +558,6 @@ const resetGame = () => {
     makeTower(player);
     makeTower(computer);
     clearInterval(aiInt);
-    $(`.game-board`).html(``);
     setIntervals();
 }
 const compUnits = () => {
@@ -501,6 +581,7 @@ const aiIntervalSet = () => {
 }
 const setIntervals = () => {
     aiInt = aiIntervalSet();
+    research.initInt();
 }
 const buttonDefender = () => {
     makeDefender(player);
@@ -523,7 +604,7 @@ const buttonArcher = () => {
         $(`#make-archer`).prop(`disabled`, false);
     }, 5000)
 }
-    $(`body`).on('click', function(e) {
+$(`body`).on('click', function(e) {
     if (e.target.tagName === 'BUTTON'){
         const $thisButton = $(e.target)[0];
         if ($($thisButton).attr('id') === 'start-game'){
@@ -543,51 +624,645 @@ const buttonArcher = () => {
 $(`.wrapper`).on('click', function(e) {
     if (e.target.tagName === 'BUTTON'){
         const $thisButton = $(e.target)[0];
-        if ($($thisButton).attr(`id`) === 'swordsman-hp-up'){
+        if ($($thisButton).hasClass(`sword-up`)) {
             console.log(`button was clicked`);
-            research.swordsman.hp.hpUp();
-        } else if ($($thisButton).attr(`id`) === 'make-sword') {
+            swordsmanUpgrades.whichButton($thisButton);
+        } else if ($($thisButton).hasClass(`archer-up`)) {
             console.log(`button was clicked`);
-            buttonSword();
-        }else if($($thisButton).attr(`id`) === `make-archer`) {
-            buttonArcher();
-        }else if($($thisButton).attr(`id`) === `make-defender`) {
-            buttonDefender();
-        }else if($($thisButton).attr(`id`)=== `next-level`) {
-            game.resetBoard();
-            $(`#next-level`).prop(`disabled`, true);
-        }  
+            archerUpgrades.whichButton($thisButton);
+        }else if ($($thisButton).hasClass(`defender-up`)) {
+            console.log(`button was clicked`);
+            defenderUpgrades.whichButton($thisButton);
+        }
     }
 });
 const research = {
     researchProgress: 0,
-    swordsman: {
-        hp: {
-            cost: 5,
-            hpUp() {
-                console.log(`got to HpUp`);
+    currentResearch: 'Research: none',
+    timer: 0,
+    researchIntHandler: 0,
+    initInt() {
+        this.researchIntHandler = setInterval(this.researchInt(), 1000);
+    },
+    researchInt() {
+        this.timer++; 
+    }
+}
+const swordsmanUpgrades = {
+    hp: {
+        hpIntHandler: 0,
+        cost: 5,
+        hpUp() {
+            if(research.currentResearch === 'Research: none'){
                 if(game.score > 4) {
                     console.log(`paid 5g`);
+                    research.currentResearch = `Swordsman HP`;
                     game.score = game.score - this.cost;
-                    // console.log(`spent 5g on upgrade`);
-                    // swordsman.hp = swordsman.hp + 10;
-                    // console.log(`upgraded swordsman hp! Now has ${swordsman.hp}`);
-                    this.hpUpInterval();
+                    this.render();
+                    this.hpInt();
+                } else {
+                    console.log(`you cant afford that.`);
                 }
-            },
-            hpUpInterval() {
-                console.log(`in the interval`);
-                console.log(research.researchProgress);
-                while (research.researchProgress < 101) {
-                    console.log(`in the while loop`);
-                    setTimeout(function(){
-                        research.researchProgress+=25;
-                        console.log(`Research Progress: ${research.researchProgress}%`);
-                    }, 2000);
-                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        hpUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.hpUpFunction();
+            }
+        },
+        hpUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
                 swordsman.hp+= 10;
                 research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.hpIntHandler);
+            }  
+        }, 
+        hpInt() {
+                this.hpIntHandler = this.hpIntSet();
+        },
+        hpIntSet() {
+                i = setInterval(this.hpUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    defense: {
+        defenseIntHandler: 0,
+        cost: 5,
+        defenseUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Swordsman Defense`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.defenseInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
             }
+        },
+        defenseUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.defenseUpFunction();
+            }
+        },
+        defenseUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                swordsman.defense+= 5;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: nonenone`;
+                this.render();
+                clearInterval(this.defenseIntHandler);
+            }  
+        }, 
+        defenseInt() {
+                this.defenseIntHandler = this.defenseIntSet();
+        },
+        defenseIntSet() {
+                i = setInterval(this.defenseUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    damage: {
+        damageIntHandler: 0,
+        cost: 5,
+        damageUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Swordsman damage`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.damageInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        damageUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.damageUpFunction();
+            }
+        },
+        damageUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                swordsman.damage+= 10;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.damageIntHandler);
+            }  
+        }, 
+        damageInt() {
+                this.damageIntHandler = this.damageIntSet();
+        },
+        damageIntSet() {
+                i = setInterval(this.damageUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    attackSpeed: {
+        attackSpeedIntHandler: 0,
+        cost: 20,
+        attackSpeedUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 19) {
+                    console.log(`paid 20g`);
+                    research.currentResearch = `Swordsman Attack Speed`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.attackSpeedInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        attackSpeedUpResearchSpeed() {
+            if(research.timer % 2) {
+                this.attackSpeedUpFunction();
+            }
+        },
+        attackSpeedUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=1;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                swordsman.attackSpeed-= 15;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.attackSpeedIntHandler);
+            }  
+        }, 
+        attackSpeedInt() {
+                this.attackSpeedIntHandler = this.attackSpeedIntSet();
+        },
+        attackSpeedIntSet() {
+                i = setInterval(this.attackSpeedUpResearchSpeed.bind(this), 500);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    whichButton(target){
+        console.log(target);
+        if($(target).attr(`id`)===`swordsman-hp-up`){
+            this.hp.hpUp();
+        } else if ($(target).attr(`id`)===`swordsman-defense-up`) {
+            this.defense.defenseUp();
+        } else if ($(target).attr(`id`)===`swordsman-damage-up`) {
+            this.damage.damageUp();
+        } else if ($(target).attr(`id`)===`swordsman-attack-speed-up`) {
+            this.attackSpeed.attackSpeedUp();
+        }
+    }
+}
+const archerUpgrades = {
+    hp: {
+        hpIntHandler: 0,
+        cost: 5,
+        hpUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Archer HP`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.hpInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        hpUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.hpUpFunction();
+            }
+        },
+        hpUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                archer.hp+= 10;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.hpIntHandler);
+            }  
+        }, 
+        hpInt() {
+                this.hpIntHandler = this.hpIntSet();
+        },
+        hpIntSet() {
+                i = setInterval(this.hpUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    defense: {
+        defenseIntHandler: 0,
+        cost: 5,
+        defenseUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Archer Defense`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.defenseInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        defenseUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.defenseUpFunction();
+            }
+        },
+        defenseUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                archer.defense+= 5;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.defenseIntHandler);
+            }  
+        }, 
+        defenseInt() {
+                this.defenseIntHandler = this.defenseIntSet();
+        },
+        defenseIntSet() {
+                i = setInterval(this.defenseUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    damage: {
+        damageIntHandler: 0,
+        cost: 5,
+        damageUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Archer damage`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.damageInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        damageUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.damageUpFunction();
+            }
+        },
+        damageUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                archer.damage+= 10;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.damageIntHandler);
+            }  
+        }, 
+        damageInt() {
+                this.damageIntHandler = this.damageIntSet();
+        },
+        damageIntSet() {
+                i = setInterval(this.damageUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    attackSpeed: {
+        attackSpeedIntHandler: 0,
+        cost: 20,
+        attackSpeedUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 19) {
+                    console.log(`paid 20g`);
+                    research.currentResearch = `Archer Attack Speed`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.attackSpeedInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        attackSpeedUpResearchSpeed() {
+            if(research.timer % 2) {
+                this.attackSpeedUpFunction();
+            }
+        },
+        attackSpeedUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=1;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                archer.attackSpeed-= 15;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.attackSpeedIntHandler);
+            }  
+        }, 
+        attackSpeedInt() {
+                this.attackSpeedIntHandler = this.attackSpeedIntSet();
+        },
+        attackSpeedIntSet() {
+                i = setInterval(this.attackSpeedUpResearchSpeed.bind(this), 500);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    whichButton(target){
+        console.log(target);
+        if($(target).attr(`id`)===`archer-hp-up`){
+            this.hp.hpUp();
+        } else if ($(target).attr(`id`)===`archer-defense-up`) {
+            this.defense.defenseUp();
+        } else if ($(target).attr(`id`)===`archer-damage-up`) {
+            this.damage.damageUp();
+        } else if ($(target).attr(`id`)===`archer-attack-speed-up`) {
+            this.attackSpeed.attackSpeedUp();
+        }
+    }
+}
+const defenderUpgrades = {
+    hp: {
+        hpIntHandler: 0,
+        cost: 5,
+        hpUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Defender HP`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.hpInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        hpUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.hpUpFunction();
+            }
+        },
+        hpUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                defender.hp+= 10;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.hpIntHandler);
+            }  
+        }, 
+        hpInt() {
+                this.hpIntHandler = this.hpIntSet();
+        },
+        hpIntSet() {
+                i = setInterval(this.hpUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    defense: {
+        defenseIntHandler: 0,
+        cost: 5,
+        defenseUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Defender Defense`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.defenseInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        defenseUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.defenseUpFunction();
+            }
+        },
+        defenseUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                defender.defense+= 5;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.defenseIntHandler);
+            }  
+        }, 
+        defenseInt() {
+                this.defenseIntHandler = this.defenseIntSet();
+        },
+        defenseIntSet() {
+                i = setInterval(this.defenseUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    damage: {
+        damageIntHandler: 0,
+        cost: 5,
+        damageUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 4) {
+                    console.log(`paid 5g`);
+                    research.currentResearch = `Defender damage`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.damageInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        damageUpResearchSpeed() {
+            if(research.timer % 10) {
+                this.damageUpFunction();
+            }
+        },
+        damageUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=10;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                defender.damage+= 10;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.damageIntHandler);
+            }  
+        }, 
+        damageInt() {
+                this.damageIntHandler = this.damageIntSet();
+        },
+        damageIntSet() {
+                i = setInterval(this.damageUpResearchSpeed.bind(this), 2000);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    moveSpeed: {
+        moveSpeedIntHandler: 0,
+        cost: 20,
+        moveSpeedUp() {
+            if(research.currentResearch === 'Research: none'){
+                if(game.score > 19) {
+                    console.log(`paid 20g`);
+                    research.currentResearch = `Defender Move Speed`;
+                    game.score = game.score - this.cost;
+                    this.render();
+                    this.moveSpeedInt();
+                } else {
+                    console.log(`you cant afford that.`);
+                }
+            }else {
+                console.log(`you are already researching something`);
+            }
+        },
+        moveSpeedUpResearchSpeed() {
+            if(research.timer % 2) {
+                this.moveSpeedUpFunction();
+            }
+        },
+        moveSpeedUpFunction() {
+            if(research.researchProgress < 100) {
+                research.researchProgress+=1;
+                this.render();
+            } else {
+                console.log(`research complete`);
+                defender.moveSpeed-= 50;
+                research.researchProgress = 0;
+                research.currentResearch = `Research: none`;
+                this.render();
+                clearInterval(this.moveSpeedIntHandler);
+            }  
+        }, 
+        moveSpeedInt() {
+                this.moveSpeedIntHandler = this.moveSpeedIntSet();
+        },
+        moveSpeedIntSet() {
+                i = setInterval(this.moveSpeedUpResearchSpeed.bind(this), 500);
+                return i;
+        },
+        render() {
+            $(`.research-bar`).css(`width`, research.researchProgress+ "%").attr(`aria-valuenow`, research.researchProgress);
+            $(`.research-bar`).text(research.currentResearch);
+        }
+    },
+    whichButton(target){
+        console.log(target);
+        if($(target).attr(`id`)===`defender-hp-up`){
+            this.hp.hpUp();
+        } else if ($(target).attr(`id`)===`defender-defense-up`) {
+            this.defense.defenseUp();
+        } else if ($(target).attr(`id`)===`defender-damage-up`) {
+            this.damage.damageUp();
+        } else if ($(target).attr(`id`)===`defender-move-speed-up`) {
+            this.moveSpeed.moveSpeedUp();
         }
     }
 }

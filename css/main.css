@@ -48,3 +48,6 @@ button .upgrade {
     display: inline-block;
 
 }
+.research-bar {
+    width: 0;
+}
